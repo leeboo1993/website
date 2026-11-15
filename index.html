@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pinetree TA Chart</title>
+<title>TA Chart</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: one working screen — toolbar, active-indicator chips (+ editor), multi-pane chart, then the signal log and data sources. */
 :root {
   color-scheme: light;
-  /* Pinetree palette */
+  /* palette */
   --navy: #012D4C; --green: #68C71F; --graphite: #454856; --mist: #E7EDF2;
   --white: #FFFFFF; --ice: #F5FCFF; --ocean: #00557F; --sky: #91C7EC;
   --deep: #01223A; --sand: #C9B684; --coral: #F86F53; --teal: #24AF8A; --amber: #FEB904;
@@ -87,6 +87,16 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .ichip:hover .mini, .ichip:focus-within .mini, .ichip.editing .mini, .ichip .mini[data-act="hi"][aria-pressed="true"], .ichip .mini[data-act="toggle"][aria-pressed="false"] { display: inline-grid; }
 .ichip { flex: none; }
 @media (max-width: 720px) { .chartrow { grid-template-columns: 1fr; } .rail { flex-direction: row; flex-wrap: wrap; } .rail .rsep { width: 1px; height: 20px; margin-inline: 3px; } }
+/* Phone: the chart gets the screen. Step numbers, separators and the subtitle go; the drawing rail becomes one row
+   whose flyouts open below it at full width; the toolbar wraps tight. */
+@media (max-width: 720px) {
+  .bn, .bar .bsep, .brand .sub { display: none; }
+  .bar { gap: 6px; padding-block: 6px; }
+  #symInput { width: 76px; } #globalSel { max-width: 118px; } #benchInput { width: 72px; }
+  .rail { position: relative; } #railGroups { display: flex; flex-wrap: wrap; gap: 2px; } .rail .rgroup { position: static; }
+  .rail .flyout { left: 0; right: 0; top: 100%; min-width: 0; max-height: 60vh; }
+  #chart { height: max(420px, calc(100svh - 130px)); }
+}
 .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .group .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 4px; }
 button {
@@ -230,7 +240,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>Pinetree TA</h1>
+      <h1>TA Chart</h1>
       <span class="sub" id="subTitle">Daily · OHLCV điều chỉnh</span>
     </div>
     <div class="top-r">
@@ -362,7 +372,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     </div>
     <div class="pk-sets">
       <span class="lbl">Bộ chỉ báo</span>
-      <button type="button" id="resetBtn" title="Đưa danh sách chỉ báo về bộ mặc định của Pinetree">Bộ mặc định Pinetree</button>
+      <button type="button" id="resetBtn" title="Đưa danh sách chỉ báo về bộ mặc định">Bộ mặc định</button>
       <select id="presetSel" aria-label="Bộ chỉ báo đã lưu"></select>
       <button type="button" id="presetSave">Lưu bộ</button>
       <button type="button" id="presetDel">Xóa bộ</button>
@@ -418,7 +428,7 @@ So với => Versus
 Mã so sánh cho RS, beta, tương quan => Benchmark for RS, beta and correlation
 Chỉ báo đang dùng => Active indicators
 Chỉ báo => Indicators
-Đưa danh sách chỉ báo về bộ mặc định của Pinetree => Reset the indicators to the Pinetree default set
+Đưa danh sách chỉ báo về bộ mặc định => Reset the indicators to the default set
 Mặc định => Default
 Bộ chỉ báo đã lưu… => Saved indicator sets…
 Bộ chỉ báo đã lưu => Saved indicator sets
@@ -745,7 +755,7 @@ Thêm => More
 3 năm => 3 years
 5 năm => 5 years
 Nguồn dữ liệu và cách dùng => Data sources and how to use
-Bộ mặc định Pinetree => Pinetree default set
+Bộ mặc định => Default set
 Bộ chỉ báo => Indicator sets
 Hay dùng => Most used
 Định dạng hình => Drawing format
@@ -2536,7 +2546,7 @@ Xong => Done`.split('\n').map(l => l.split(' => ')));
   // ponytail: a corporate action re-adjusts a stock's history, and a quarter cached before it stays on the old basis
   // until it expires, so that stock's MA can be off for up to 7 days; compare the overlap on refresh if it matters.
   let idbP = null;
-  const idb = () => idbP || (idbP = new Promise((res, rej) => { const r = indexedDB.open('pinetree-ta', 1);
+  const idb = () => idbP || (idbP = new Promise((res, rej) => { const r = indexedDB.open('ta-chart', 1);
     r.onupgradeneeded = () => r.result.createObjectStore('mkt'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
   async function idbGet(k) { try { const db = await idb(); return await new Promise(res => { const q = db.transaction('mkt').objectStore('mkt').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } }
   async function idbPut(k, v) { try { (await idb()).transaction('mkt', 'readwrite').objectStore('mkt').put(v, k); } catch (e) { /* no cache: still works, only slower */ } }
@@ -4065,7 +4075,7 @@ Xong => Done`.split('\n').map(l => l.split(' => ')));
     const dimg = await drawingImage();
     if (dimg) g.drawImage(dimg, 0, head, Math.round(dimg.width * scale), Math.round(dimg.height * scale));
     g.fillStyle = C.gray3; g.font = `${Math.round(11 * scale)}px Helvetica, Arial, sans-serif`;
-    if (withSrc) g.fillText(tr(`Nguồn: ${state.source === 'csv' ? 'CSV nội bộ' : isCrypto(state.sym) ? 'Binance' : 'VNDirect'}, dữ liệu đến ${fmtDate(r.t)} · Pinetree Securities`), Math.round(12 * scale), cv.height - Math.round(9 * scale));
+    if (withSrc) g.fillText(tr(`Nguồn: ${state.source === 'csv' ? 'CSV nội bộ' : isCrypto(state.sym) ? 'Binance' : 'VNDirect'}, dữ liệu đến ${fmtDate(r.t)}`), Math.round(12 * scale), cv.height - Math.round(9 * scale));
     const tag = typeof r.t === 'number' ? new Date(r.t * 1000).toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '_') : r.t;
     return { cv, name: `${state.sym}_${TF_EN[state.tf]}_${tag}.png` };
   }
