@@ -141,6 +141,17 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .dwbody { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 11px; } .dwbody b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .dwbody .k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #drawMag[data-mag="strong"] { color: var(--accent); }
+.newsrow { padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 11.5px; line-height: 1.35; } .newsrow .k { display: block; font-size: 10.5px; }
+.newsrow a { color: var(--fg); text-decoration: none; } .newsrow a:hover { text-decoration: underline; } #newsBody { max-height: 320px; overflow-y: auto; }
+.btgrid { display: grid; grid-template-columns: auto 1fr; gap: 4px 6px; align-items: center; font-size: 11px; } .btgrid select, .btgrid input { font-size: 11px; max-width: 100%; min-width: 0; }
+.btgrid select:nth-of-type(n) { grid-column: 2; } .btgrid input { grid-column: 2; }
+.btrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 11px; } .btrow input { width: 52px; font-size: 11px; }
+.pattab td.up { color: var(--good); } .pattab td.dn { color: var(--bad); }
+.scrdlg { width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 40px); } .scrhead { display: flex; justify-content: space-between; align-items: center; }
+.scrhead h3 { margin: 0; } .scrhead button { border: 0; background: none; font-size: 18px; cursor: pointer; }
+.scrbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; } .scrbar input[type=number] { width: 56px; } #scrQ { width: 90px; text-transform: uppercase; }
+.scrwrap { max-height: 62vh; overflow: auto; } .scrtab th { position: sticky; top: 0; background: var(--white); cursor: pointer; } .scrtab tr[data-c] { cursor: pointer; } .scrtab tr[data-c]:hover td { background: var(--mist); }
+.scrtab td.up { color: var(--good); } .scrtab td.dn { color: var(--bad); }
 .tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .patpick span { flex: 1; }
@@ -389,6 +400,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
         <button type="button" id="fsBtn" title="Toàn màn hình (Shift+F)">Toàn màn hình</button>
         <button type="button" id="cmdBtn" title="Tìm mã, chỉ báo hoặc lệnh (Ctrl+K)">Tìm nhanh</button>
         <button type="button" id="keysBtn" title="Danh sách phím tắt (?)">Phím tắt</button>
+        <button type="button" id="scrBtn" title="Lọc cổ phiếu Việt Nam theo giá, thanh khoản, định giá">Bộ lọc cổ phiếu…</button>
         <button type="button" id="tplBtn" title="Lưu và mở bộ chỉ báo, bố cục biểu đồ có tên">Mẫu và bố cục…</button>
         <button type="button" data-sx="pt-ta-ev" aria-pressed="false" title="Cổ tức tiền, cổ tức cổ phiếu, cổ phiếu thưởng và ĐHCĐ trên biểu đồ (VNDirect)">Sự kiện trên biểu đồ</button>
         <button type="button" id="ssiBtn" title="Nhập mã truy cập để dùng nguồn SSI thời gian thực (chỉ trên trình duyệt này)">Nguồn SSI…</button>
@@ -411,6 +423,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <details class="more" id="alertMenu"><summary id="alertSum" title="Cảnh báo khi giá hoặc chỉ báo cắt một mức">Cảnh báo</summary><div class="menu alertbox">
       <div class="arow"><select id="alA" aria-label="Vế trái"></select><select id="alOp" aria-label="Điều kiện"><option value="up">cắt lên</option><option value="dn">cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select></div>
       <div class="arow"><select id="alB" aria-label="Vế phải"></select><input id="alNum" type="number" step="any" aria-label="Mức"></div>
+      <label class="ed-chk" id="alTgLab" title="Gửi cảnh báo này tới Telegram của bàn qua Worker (cần mã truy cập ở Thêm → Nguồn SSI)"><input type="checkbox" id="alTg"> Gửi Telegram</label>
       <button type="button" class="primary" id="alAdd">Thêm cảnh báo</button>
       <button type="button" id="alPerm" hidden>Bật thông báo trên máy tính</button>
       <div id="alList"></div>
@@ -460,6 +473,19 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <div id="editor" hidden></div>
   </div>
   <dialog id="cmdk" class="cmdk"><input id="cmdkIn" type="search" placeholder="Tìm mã, chỉ báo hoặc lệnh…" aria-label="Tìm mã, chỉ báo hoặc lệnh"><div id="cmdkList" role="listbox"></div></dialog>
+  <dialog id="scrDlg" class="scrdlg">
+    <div class="scrhead"><h3>Bộ lọc cổ phiếu <span id="scrDate" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
+    <div class="scrbar">
+      <input id="scrQ" type="text" placeholder="Tìm mã…" aria-label="Tìm mã" maxlength="10">
+      <select id="scrFloor" aria-label="Sàn"><option value="">Mọi sàn</option><option>HOSE</option><option>HNX</option><option>UPCOM</option></select>
+      <label>GTGD ≥ <input id="scrVal" type="number" min="0" step="1" value="10"> tỷ</label>
+      <label>KL ≥ <input id="scrVr" type="number" min="0" step="0.5" value="0"> × TB20</label>
+      <label class="ed-chk"><input type="checkbox" id="scrHi"> Vượt đỉnh 20 phiên</label>
+      <label class="ed-chk"><input type="checkbox" id="scrMa"> Trên MA20</label>
+    </div>
+    <div class="scrwrap" data-notr><table class="pattab scrtab" id="scrTab"></table></div>
+    <p class="k" style="font-size:11px;margin:6px 0 0">VNDirect, phiên gần nhất và 30 phiên trước đó. P/E, P/B, vốn hóa: số mới nhất của VNDirect, tải cho các mã đang hiện. Bấm tiêu đề để sắp xếp, bấm một mã để mở biểu đồ.</p>
+  </dialog>
   <dialog id="tplDlg" class="keysdlg">
     <h3>Bộ chỉ báo đã lưu</h3><div id="tplInds"></div>
     <div class="wlform"><input id="tplIndName" type="text" maxlength="40" placeholder="Tên bộ chỉ báo…" aria-label="Tên bộ chỉ báo"><button type="button" id="tplIndSave">Lưu bộ hiện tại</button></div>
@@ -520,6 +546,15 @@ tbody tr[data-i]:hover { background: var(--panel); }
       </section>
       <section data-w="si"><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
       <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
+      <section data-w="news"><h3>Tin tức <span id="newsSym" class="k"></span></h3><div id="newsBody" data-notr></div></section>
+      <section data-w="bt"><h3>Kiểm thử chiến lược</h3>
+        <div class="btgrid">
+          <span class="k">Mua khi</span><select id="btA1" aria-label="Mua khi: vế trái"></select><select id="btO1" aria-label="Mua khi: điều kiện"><option value="up">cắt lên</option><option value="dn">cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select><select id="btB1" aria-label="Mua khi: vế phải"></select><input id="btN1" type="number" step="any" aria-label="Mức mua">
+          <span class="k">Bán khi</span><select id="btA2" aria-label="Bán khi: vế trái"></select><select id="btO2" aria-label="Bán khi: điều kiện"><option value="">không dùng</option><option value="up">cắt lên</option><option value="dn" selected>cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select><select id="btB2" aria-label="Bán khi: vế phải"></select><input id="btN2" type="number" step="any" aria-label="Mức bán">
+        </div>
+        <div class="btrow"><label>Cắt lỗ % <input id="btSL" type="number" min="0" step="0.5" value="7"></label><label>Chốt lời % <input id="btTP" type="number" min="0" step="0.5" value="0"></label>
+          <button type="button" class="primary" id="btRun">Chạy</button><button type="button" id="btClear">Xóa</button></div>
+        <div id="btOut"></div></section>
       <section data-w="dw"><h3>Cửa sổ dữ liệu</h3><div id="dwBody" class="dwbody"></div></section>
       <section data-w="obj"><h3>Hình vẽ <span id="objCount" class="k"></span></h3><div id="objBody"></div></section>
       <section data-w="pat"><h3>Mô hình đang hình thành</h3><div id="patBody"></div></section>
@@ -1286,6 +1321,60 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Gửi cảnh báo này tới Telegram của bàn qua Worker (cần mã truy cập ở Thêm → Nguồn SSI) => Send this alert to the desk's Telegram through the Worker (needs the access code under More → SSI source)
+Gửi Telegram => Send to Telegram
+Hình => Drawing
+Tin tức => News
+Không có nguồn tin cho mã này. => No news source for this symbol.
+Đang tải… => Loading…
+Chưa có tin. => No news yet.
+Không tải được tin. => Could not load the news.
+Kiểm thử chiến lược => Strategy tester
+Mua khi => Buy when
+Bán khi => Sell when
+Mua khi: vế trái => Buy when: left side
+Mua khi: điều kiện => Buy when: condition
+Mua khi: vế phải => Buy when: right side
+Bán khi: vế trái => Sell when: left side
+Bán khi: điều kiện => Sell when: condition
+Bán khi: vế phải => Sell when: right side
+Mức mua => Buy level
+Mức bán => Sell level
+không dùng => not used
+Cắt lỗ % => Stop %
+Chốt lời % => Target %
+Chạy => Run
+Không có lệnh nào trong giai đoạn này. => No trade in this period.
+Số lệnh => Trades
+Tỷ lệ thắng => Win rate
+Lãi TB mỗi lệnh => Avg per trade
+Tổng (lãi kép) => Total (compounded)
+Mua và giữ cùng kỳ => Buy and hold, same span
+Sụt giảm lớn nhất => Max drawdown
+Hệ số lợi nhuận => Profit factor
+Lý do => Exit
+tín hiệu bán => sell signal
+chốt lời => target
+đang giữ => still held
+Mua, bán ở giá đóng cửa của nến có tín hiệu; cắt lỗ, chốt lời trong phiên. Chưa tính phí, thuế. Kết quả quá khứ không bảo đảm tương lai. => Buys and sells at the close of the signal bar; stops and targets within the bar. No fees or taxes. Past results do not guarantee the future.
+Mua => Buy
+Bán => Sell
+Lọc cổ phiếu Việt Nam theo giá, thanh khoản, định giá => Screen Vietnamese stocks by price, liquidity and valuation
+Bộ lọc cổ phiếu… => Stock screener…
+Bộ lọc cổ phiếu => Stock screener
+Tìm mã… => Find code…
+Tìm mã => Find code
+Mọi sàn => All exchanges
+Vượt đỉnh 20 phiên => Above 20-session high
+Trên MA20 => Above MA20
+VNDirect, phiên gần nhất và 30 phiên trước đó. P/E, P/B, vốn hóa: số mới nhất của VNDirect, tải cho các mã đang hiện. Bấm tiêu đề để sắp xếp, bấm một mã để mở biểu đồ. => VNDirect, the last session and the 30 before it. P/E, P/B, market cap: VNDirect's latest, loaded for the rows shown. Click a header to sort, a code to open its chart.
+% 1 phiên => % 1 session
+% 1 tuần => % 1 week
+% 1 tháng => % 1 month
+GTGD (tỷ) => Value (bn VND)
+KL / TB20 => Vol / avg 20
+Vốn hóa (nghìn tỷ) => Mkt cap (tn VND)
+Không tải được dữ liệu. => Could not load the data.
 không có mô hình khớp tốt => no good match
 Mô hình đang hình thành => Patterns now
 Mô hình theo giai đoạn => Patterns by period
@@ -1471,7 +1560,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const tr = s => EN && typeof s === 'string' && s ? s.replace(TR_RE, m => VI2EN.get(m)) : s;
   const TR_ATTR = ['title', 'placeholder', 'aria-label'];
   function trAttrs(el) { for (const a of TR_ATTR) { const v = el.getAttribute(a); if (v) { const t = tr(v); if (t !== v) el.setAttribute(a, t); } } }
-  function trNode(n) {
+  function trNode(n) {   // [data-notr]: source text (news titles) is never "translated" word by word
+    const host = n.nodeType === 3 ? n.parentNode : n; if (host && host.closest && host.closest('[data-notr]')) return;
     if (n.nodeType === 3) { if (!/^(TEXTAREA|SCRIPT|STYLE)$/.test(n.parentNode && n.parentNode.nodeName)) { const t = tr(n.data); if (t !== n.data) n.data = t; } return; }
     if (n.nodeType !== 1 || /^(TEXTAREA|SCRIPT|STYLE|CANVAS)$/.test(n.nodeName)) return;
     trAttrs(n);
@@ -3352,6 +3442,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       }
     }
     if (sxOn('pt-ta-ev')) for (const m of evMarks()) items.push(m);   // dividends, bonus shares, AGMs
+    for (const t of bt.trades) { if (rows[t.i]) items.push({ i: t.i, dir: 1, color: C.up, text: tr('Mua') });   // the strategy tester's trades
+      if (!t.open && rows[t.j]) items.push({ i: t.j, dir: -1, color: t.ret >= 0 ? C.up : C.down, text: `${tr('Bán')} ${t.ret >= 0 ? '+' : ''}${(t.ret * 100).toFixed(1)}%` }); }
     for (const o of state.out) if (o.inst.on) for (const out of o.out) if (out.kind === 'marks')
       for (const m of out.marks) if (rows[m.i]) items.push(Object.assign({ color: o.c.mark || C.navy }, m));
     markersAny = items.length > 0;
@@ -4529,6 +4621,67 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
   }
 
+  // News: VNDirect's company news for a VN stock (tagged with its code), the market's for an index; none for world
+  // series or coins. Titles link to the source.
+  let newsFor = '';
+  function newsLoad(sym) {
+    const sec = document.querySelector('#dock > section[data-w="news"]'); if (!sec || $('dock').hidden || sec.hidden || newsFor === sym) return;
+    newsFor = sym; $('newsSym').textContent = sym;
+    if (GLOBAL.has(sym) || isCrypto(sym)) { $('newsBody').innerHTML = `<span class="k">${tr('Không có nguồn tin cho mã này.')}</span>`; return; }
+    $('newsBody').innerHTML = `<span class="k">${tr('Đang tải…')}</span>`;
+    const q = INDICES.has(sym) ? 'newsType:market_news~locale:VN' : `tagCodes:${encodeURIComponent(sym)}`;
+    getJSON(`${FINFO}/news?q=${q}&sort=newsDate:desc&size=15`).then(j => {
+      if (newsFor !== sym) return;
+      const L = (j.data || []).filter(x => x.newsTitle);
+      $('newsBody').innerHTML = L.length ? L.map(x => { const u = /^https?:\/\//.test(x.newsUrl || '') ? x.newsUrl : x.dstockUrl;
+        return `<div class="newsrow"><span class="k">${esc(x.newsDate ? fmtDate(x.newsDate).slice(0, 5) : '')} · ${esc(x.newsSource || '')}</span><a href="${esc(u || '#')}" target="_blank" rel="noopener noreferrer">${esc(x.newsTitle.trim())}</a></div>`; }).join('')
+        : `<span class="k">${tr('Chưa có tin.')}</span>`;
+    }).catch(() => { if (newsFor === sym) { newsFor = ''; $('newsBody').innerHTML = `<span class="k">${tr('Không tải được tin.')}</span>`; } });
+  }
+  // Strategy tester: long only. Buy at the close of the bar where the buy rule turns true; sell at the close where the
+  // sell rule does, or intrabar at the stop or target (the stop first when both sit inside one bar). No costs, whole
+  // capital each trade. Sides: the price, any indicator line on screen, or a number.
+  const bt = { trades: [] };
+  function btFill() {
+    const L = lineOpts(), o = '<option value="close">' + esc(tr('Giá')) + '</option>' + L.map(l => `<option value="${esc(l.key)}">${esc(l.label)}</option>`).join('');
+    for (const id of ['btA1', 'btA2']) { const v = $(id).value; $(id).innerHTML = o; if ([...$(id).options].some(x => x.value === v)) $(id).value = v; }
+    for (const id of ['btB1', 'btB2']) { const v = $(id).value; $(id).innerHTML = '<option value="num">' + esc(tr('Mức…')) + '</option>' + o; if ([...$(id).options].some(x => x.value === v)) $(id).value = v; else if (L.length) $(id).value = L[0].key; }
+    $('btN1').hidden = $('btB1').value !== 'num'; $('btN2').hidden = $('btB2').value !== 'num';
+  }
+  function btRun() {
+    const rows = state.rows, n = rows.length, L = lineOpts(); if (n < 30) return;
+    const arr = (k, num) => k === 'close' ? rows.map(r => r.c) : k === 'num' ? rows.map(() => +num) : (L.find(l => l.key === k) || {}).values || null;
+    const A1 = arr($('btA1').value), B1 = arr($('btB1').value, $('btN1').value), use2 = !!$('btO2').value, A2 = use2 ? arr($('btA2').value) : null, B2 = use2 ? arr($('btB2').value, $('btN2').value) : null;
+    if (!A1 || !B1 || (use2 && (!A2 || !B2))) return;
+    const hit = (A, B, op, i) => { const a = A[i], b = B[i], pa = A[i - 1], pb = B[i - 1]; if (a == null || b == null) return false;
+      return op === 'gt' ? a > b : op === 'lt' ? a < b : pa == null || pb == null ? false : op === 'up' ? pa < pb && a >= b : pa > pb && a <= b; };
+    const sl = Math.max(0, +$('btSL').value || 0) / 100, tp = Math.max(0, +$('btTP').value || 0) / 100, T = [];
+    let pos = null;
+    for (let i = 1; i < n; i++) {
+      if (pos) {
+        const r = rows[i], stop = sl ? pos.px * (1 - sl) : null, tgt = tp ? pos.px * (1 + tp) : null; let x = null, why = '';
+        if (stop != null && r.l <= stop) { x = Math.min(stop, r.o); why = 'cắt lỗ'; } else if (tgt != null && r.h >= tgt) { x = Math.max(tgt, r.o); why = 'chốt lời'; }
+        else if (use2 && hit(A2, B2, $('btO2').value, i)) { x = r.c; why = 'tín hiệu bán'; }
+        if (x != null) { T.push({ ...pos, j: i, out: x, why, ret: x / pos.px - 1 }); pos = null; continue; }
+      } else if (hit(A1, B1, $('btO1').value, i)) pos = { i, px: rows[i].c };
+    }
+    if (pos) T.push({ ...pos, j: n - 1, out: rows[n - 1].c, why: 'đang giữ', ret: rows[n - 1].c / pos.px - 1, open: true });
+    bt.trades = T; renderMarkers();
+    if (!T.length) { $('btOut').innerHTML = `<span class="k">${tr('Không có lệnh nào trong giai đoạn này.')}</span>`; return; }
+    let eq = 1, peak = 1, dd = 0, gain = 0, loss = 0; for (const t of T) { eq *= 1 + t.ret; peak = Math.max(peak, eq); dd = Math.min(dd, eq / peak - 1); if (t.ret > 0) gain += t.ret; else loss -= t.ret; }
+    const wins = T.filter(t => t.ret > 0).length, pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`, bh = rows[n - 1].c / rows[T[0].i].c - 1;
+    const row = (k, v) => `<span class="k">${tr(k)}</span><b>${v}</b>`;
+    $('btOut').innerHTML = `<div class="dwbody" style="margin-top:6px">` + row('Số lệnh', T.length) + row('Tỷ lệ thắng', `${Math.round(wins / T.length * 100)}%`)
+      + row('Lãi TB mỗi lệnh', pc(T.reduce((a, t) => a + t.ret, 0) / T.length)) + row('Tổng (lãi kép)', pc(eq - 1)) + row('Mua và giữ cùng kỳ', pc(bh))
+      + row('Sụt giảm lớn nhất', pc(dd)) + row('Hệ số lợi nhuận', loss ? (gain / loss).toFixed(2) : '∞') + `</div>`
+      + `<table class="pattab" style="margin-top:6px"><tr><th>Mua</th><th>Bán</th><th>Lãi</th><th>Lý do</th></tr>` + T.slice(-12).reverse().map(t =>
+        `<tr><td>${fmtDate(rows[t.i].t)}</td><td>${t.open ? '—' : fmtDate(rows[t.j].t)}</td><td class="${t.ret >= 0 ? 'up' : 'dn'}">${pc(t.ret)}</td><td>${tr(t.why)}</td></tr>`).join('') + '</table>'
+      + `<div class="pathelp k">${tr(`${esc(state.sym)} · ${TF_LABEL[state.tf]} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. Mua, bán ở giá đóng cửa của nến có tín hiệu; cắt lỗ, chốt lời trong phiên. Chưa tính phí, thuế. Kết quả quá khứ không bảo đảm tương lai.`)}</div>`;
+  }
+  $('dock').addEventListener('focusin', e => { if (e.target.closest('section[data-w="bt"]') && e.target.matches('select')) btFill(); });
+  for (const id of ['btB1', 'btB2']) $(id).addEventListener('change', () => { $('btN1').hidden = $('btB1').value !== 'num'; $('btN2').hidden = $('btB2').value !== 'num'; });
+  $('btRun').addEventListener('click', () => { btFill(); btRun(); });
+  $('btClear').addEventListener('click', () => { bt.trades = []; $('btOut').innerHTML = ''; renderMarkers(); });
   // Object tree: every drawing of this symbol and interval, to select, hide, lock or delete one
   function objTree() {
     const sec = document.querySelector('#dock > section[data-w="obj"]'); if (!sec || $('dock').hidden || sec.hidden) return;
@@ -4829,7 +4982,15 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     });
     return opts;
   }
-  function sideVal(s) {
+  // a drawn line's price at the last bar: flat lines their level, two-point lines extended through both points
+  const LINE_T = ['hline', 'hray', 'trend', 'ray', 'extended', 'info'];
+  function lineAt(d) {
+    const n = state.rows.length - 1, [p0, p1] = d.pts; if (!p0) return null;
+    if (d.type === 'hline' || d.type === 'hray' || !p1) return p0.p;
+    const i0 = barOf(p0), i1 = barOf(p1); return i0 === i1 ? p1.p : p0.p + (p1.p - p0.p) * (n - i0) / (i1 - i0);
+  }
+  function sideVal(s, al) {
+    if (typeof s === 'string' && s.startsWith('draw:')) { const d = draw.list.find(x => 'draw:' + x.id === s) || (al && al.dline); return d ? lineAt(d) : null; }   // follows the line if it moves
     if (typeof s === 'number') return s;
     if (s === 'close') return state.rows.length ? state.rows[state.rows.length - 1].c : null;
     const l = lineOpts().find(x => x.key === s); return l ? lastVal(l.values) : null;
@@ -4852,6 +5013,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     al.on = false; al.fired = Date.now();
     const msg = tr(`${al.sym}${al.tf ? ' ' + TF_LABEL[al.tf] : ''}: ${alertText(al)} (${fmtP(v)})`);
     beep(); toast('🔔 ' + msg);
+    if (al.tg && ssiCode()) fetch(`${RELAY.replace(/^wss:/, 'https:').replace(/\/ssi$/, '/notify')}?code=${encodeURIComponent(ssiCode())}`, { method: 'POST', body: '🔔 ' + msg }).catch(() => {});   // text/plain: no preflight
     try { if ('Notification' in window && Notification.permission === 'granted') new Notification(tr('Cảnh báo giá'), { body: msg, tag: al.id }); } catch (e) { /* phones without a service worker */ }
     if (document.hidden) document.title = '🔔 ' + msg;
   }
@@ -4862,7 +5024,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     loadAlerts();
     let seen = false;
     for (const al of alerts) if (al.on && al.sym === state.sym && (!al.tf || al.tf === state.tf)) {
-      const a = sideVal(al.a), b = sideVal(al.b); if (a == null || b == null) continue;
+      const a = sideVal(al.a, al), b = sideVal(al.b, al); if (a == null || b == null) continue;
       seen = true; if (judge(al, a - b)) fire(al, a);
     }
     if (seen) saveAlerts();
@@ -4900,7 +5062,9 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     loadAlerts(); alertLines();
     const opt = l => `<option value="${esc(l.key)}">${esc(l.label)}</option>`, L = lineOpts().map(opt).join('');
     $('alA').innerHTML = `<option value="close">Giá ${esc(state.sym)}</option>` + L;
-    $('alB').innerHTML = '<option value="num">Mức…</option><option value="close">Giá</option>' + L;
+    const DL = draw.list.filter(d => LINE_T.includes(d.type)).map(d => `<option value="draw:${esc(d.id)}">${esc(tr('Hình') + ': ' + (TN[d.type] ? TN[d.type][EN ? 1 : 0] : d.type) + (d.note ? ' · ' + d.note : ''))}</option>`).join('');
+    $('alB').innerHTML = '<option value="num">Mức…</option><option value="close">Giá</option>' + L + DL;
+    $('alTg').disabled = !ssiCode(); $('alTgLab').style.opacity = ssiCode() ? '' : '.5';
     $('alNum').hidden = false; $('alNum').value = state.rows.length ? state.rows[state.rows.length - 1].c : '';
     renderAlerts();
   });
@@ -4911,8 +5075,10 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (typeof b === 'number' && !isFinite(b)) { $('alNum').focus(); return; }
     if (a === b || !state.rows.length || state.source !== 'vnd') return;
     const labels = {}; for (const l of lineOpts()) if (l.key === a || l.key === b) labels[l.key] = l.label;
+    const dl = typeof b === 'string' && b.startsWith('draw:') ? draw.list.find(x => 'draw:' + x.id === b) : null;
+    if (dl) labels[b] = tr('Hình') + ': ' + (TN[dl.type] ? TN[dl.type][EN ? 1 : 0] : dl.type) + (dl.note ? ' · ' + dl.note : '');
     const al = { id: Date.now().toString(36), sym: state.sym, tf: a === 'close' && (typeof b === 'number' || b === 'close') ? null : state.tf,
-      a, op: $('alOp').value, b, labels, on: true, prev: null, made: Date.now() };
+      a, op: $('alOp').value, b, labels, on: true, prev: null, made: Date.now(), tg: $('alTg').checked && !!ssiCode(), dline: dl ? { type: dl.type, pts: dl.pts } : undefined };
     const va = sideVal(a), vb = sideVal(b); if (va != null && vb != null) al.prev = va - vb;   // a crossing needs a move after now
     loadAlerts(); alerts.push(al); saveAlerts();
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(renderAlerts, () => {});
@@ -5171,6 +5337,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     else if (row && row.dataset.sym !== state.sym) loadSymbol(row.dataset.sym);
   });
   function siReset(x) {
+    newsLoad(x);
     if (si.bookStop) si.bookStop();
     Object.assign(si, { sym: x, name: '', ref: null, ceil: null, floor: null, book: null, src: '', bookStop: null });
     if (isCrypto(x) && !$('dock').hidden) si.bookStop = binanceDepth(x, b => { if (si.sym === x) { si.book = b; si.src = 'Binance'; siDraw(); } });
@@ -5215,12 +5382,12 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function setDock(on) {
     $('dock').hidden = $('dockGrip').hidden = !on; $('dockBtn').setAttribute('aria-pressed', String(on)); document.querySelector('.chartrow').classList.toggle('dockon', on);
     safeSet('pt-ta-dock', on ? '1' : '0');
-    if (on) { wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); objTree(); dwRender(state.rows.length - 1); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
+    if (on) { newsFor = ''; wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); objTree(); dwRender(state.rows.length - 1); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
   }
   $('dockBtn').addEventListener('click', () => setDock($('dock').hidden));
   // widgets in the panel: order, folded, closed and height, kept per browser as pt-ta-dockl
   { const dock = $('dock'), secs = () => [...dock.querySelectorAll(':scope > section[data-w]')], W = Object.fromEntries(secs().map(x => [x.dataset.w, x]));
-    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', dw: 'Cửa sổ dữ liệu', obj: 'Hình vẽ', pat: 'Mô hình đang hình thành',
+    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', dw: 'Cửa sổ dữ liệu', obj: 'Hình vẽ', news: 'Tin tức', bt: 'Kiểm thử chiến lược', pat: 'Mô hình đang hình thành',
       patpr: 'Mô hình theo giai đoạn', pattl: 'Dòng thời gian mô hình', patrec: 'Thống kê mô hình của mã' };
     let L = {}; try { L = JSON.parse(safeGet('pt-ta-dockl') || '{}') || {}; } catch (e) {}
     L = { order: Array.isArray(L.order) ? L.order : [], fold: L.fold || {}, hide: L.hide || {}, h: L.h || {} };
@@ -5702,6 +5869,51 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('cmdkList').addEventListener('click', e => { const it = e.target.closest('[data-i]'); if (it) cmdRun(+it.dataset.i); });
   $('cmdk').addEventListener('click', e => { if (e.target === $('cmdk')) $('cmdk').close(); });
   $('cmdBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); cmdOpen(); });
+  // Screener: every VN stock's last 31 sessions in one VNDirect call, then P/E, P/B and market cap for the rows shown
+  const scr = { rows: null, ratios: {}, sort: 'val', desc: true, date: '' };
+  async function scrLoad() {
+    $('scrTab').innerHTML = `<tr><td>${tr('Đang tải…')}</td></tr>`;
+    const from = new Date(Date.now() - 50 * 864e5).toISOString().slice(0, 10);
+    const j = await getJSON(`${FINFO}/stock_prices?q=date:gte:${from}~type:STOCK&size=80000&fields=code,date,floor,close,high,nmVolume,nmValue,pctChange`);
+    const by = new Map(); for (const r of j.data || []) { if (!(r.close > 0)) continue; (by.get(r.code) || by.set(r.code, []).get(r.code)).push(r); }
+    const out = [];
+    for (const [code, a] of by) {
+      a.sort((x, y) => x.date < y.date ? -1 : 1); const L = a[a.length - 1], n = a.length, c = k => n > k ? a[n - 1 - k].close : null;
+      const prev = a.slice(Math.max(0, n - 21), n - 1), avgV = prev.length ? prev.reduce((s, r) => s + (+r.nmVolume || 0), 0) / prev.length : 0;
+      const ma20 = a.slice(-20).reduce((s, r) => s + r.close, 0) / Math.min(20, n), hi20 = prev.length ? Math.max(...prev.map(r => r.high || r.close)) : Infinity;
+      out.push({ code, floor: L.floor, date: L.date, px: L.close, d1: (+L.pctChange || 0) / 100, w1: c(5) ? L.close / c(5) - 1 : null, m1: c(20) ? L.close / c(20) - 1 : null,
+        val: (+L.nmValue || 0) / 1e9, vr: avgV ? (+L.nmVolume || 0) / avgV : null, ma: L.close > ma20, hi: L.close > hi20 });
+    }
+    scr.date = out.reduce((m, r) => r.date > m ? r.date : m, ''); scr.rows = out.filter(r => r.date === scr.date);   // only names that traded in the last session
+    scrRender();
+  }
+  function scrRender() {
+    if (!scr.rows) return;
+    const q = $('scrQ').value.trim().toUpperCase(), fl = $('scrFloor').value, mv = +$('scrVal').value || 0, vr = +$('scrVr').value || 0, R = scr.ratios;
+    let L = scr.rows.filter(r => (!q || r.code.startsWith(q)) && (!fl || r.floor === fl) && r.val >= mv && (!vr || (r.vr || 0) >= vr) && (!$('scrHi').checked || r.hi) && (!$('scrMa').checked || r.ma));
+    const k = scr.sort, get = r => ['pe', 'pb', 'cap'].includes(k) ? (R[r.code] || {})[k] : r[k];
+    L.sort((a, b) => { const x = get(a), y = get(b); if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * (scr.desc ? -1 : 1); });
+    const shown = L.slice(0, 300), pc = x => x == null ? '' : `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`, cl = x => x == null ? '' : x >= 0 ? 'up' : 'dn';
+    $('scrDate').textContent = `${fmtDate(scr.date)} · ${L.length} ${EN ? 'codes' : 'mã'}`;
+    const H = [['code', 'Mã'], ['floor', 'Sàn'], ['px', 'Giá'], ['d1', '% 1 phiên'], ['w1', '% 1 tuần'], ['m1', '% 1 tháng'], ['val', 'GTGD (tỷ)'], ['vr', 'KL / TB20'], ['pe', 'P/E'], ['pb', 'P/B'], ['cap', 'Vốn hóa (nghìn tỷ)']];
+    $('scrTab').innerHTML = `<tr>${H.map(([key, t]) => `<th data-s="${key}">${esc(tr(t))}${scr.sort === key ? (scr.desc ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr>`
+      + shown.map(r => { const x = R[r.code] || {}; return `<tr data-c="${r.code}"><td><b>${r.code}</b></td><td>${r.floor}</td><td>${fmtP(r.px)}</td><td class="${cl(r.d1)}">${pc(r.d1)}</td><td class="${cl(r.w1)}">${pc(r.w1)}</td>`
+        + `<td class="${cl(r.m1)}">${pc(r.m1)}</td><td>${r.val.toFixed(1)}</td><td>${r.vr == null ? '' : r.vr.toFixed(1) + '×'}</td><td>${x.pe != null ? x.pe.toFixed(1) : ''}</td><td>${x.pb != null ? x.pb.toFixed(2) : ''}</td><td>${x.cap != null ? (x.cap / 1e12).toFixed(1) : ''}</td></tr>`; }).join('');
+    const need = shown.map(r => r.code).filter(c => !(c in R)); if (need.length) scrRatios(need);
+  }
+  async function scrRatios(codes) {
+    for (const c of codes) scr.ratios[c] = scr.ratios[c] || {};   // asked once
+    for (let i = 0; i < codes.length; i += 100) {
+      try { const j = await getJSON(`${FINFO}/ratios/latest?filter=itemCode:51003,51006,51012&where=code:${codes.slice(i, i + 100).join(',')}&order=reportDate&fields=code,itemCode,value`);
+        for (const r of j.data || []) scr.ratios[r.code][{ 51003: 'cap', 51006: 'pe', 51012: 'pb' }[r.itemCode]] = r.value; } catch (e) { /* the column stays empty */ }
+    }
+    scrRender();
+  }
+  $('scrBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); $('scrDlg').showModal(); if (!scr.rows) scrLoad().catch(() => { $('scrTab').innerHTML = `<tr><td>${tr('Không tải được dữ liệu.')}</td></tr>`; }); });
+  for (const id of ['scrQ', 'scrFloor', 'scrVal', 'scrVr', 'scrHi', 'scrMa']) $(id).addEventListener('input', scrRender);
+  $('scrTab').addEventListener('click', e => { const h = e.target.closest('[data-s]'), r = e.target.closest('[data-c]');
+    if (h) { scr.desc = scr.sort === h.dataset.s ? !scr.desc : true; scr.sort = h.dataset.s; scrRender(); }
+    else if (r) { $('scrDlg').close(); loadSymbol(r.dataset.c); } });
   // Named indicator sets and chart layouts, kept in this browser (pt-ta-tpl)
   const tplGet = () => { try { const t = JSON.parse(safeGet('pt-ta-tpl') || '{}'); return { inds: t.inds || {}, lays: t.lays || {} }; } catch (e) { return { inds: {}, lays: {} }; } };
   function tplRender() {

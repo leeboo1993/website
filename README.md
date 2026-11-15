@@ -10,7 +10,7 @@ Open a chart directly with URL parameters:
 | Parameter | Example | Meaning |
 | :--- | :--- | :--- |
 | `symbol` | `HOSE:HPG`, `VNINDEX`, `DAX`, `BINANCE:BTCUSDT` | What to chart. The prefix before `:` is optional. |
-| `interval` | `1` `5` `15` `30` `60` `D` `W` `M` `Q` `Y` | Candle size (`1D`, `1W` also work). World series and crypto are daily only. |
+| `interval` | `1` `5` `15` `30` `60` `120` `240` `D` `W` `M` `Q` `Y` | Candle size (`1D`, `1W` also work). World series and crypto are daily only. |
 | `vs` | `VN30` | Benchmark for relative strength, beta and % compare. |
 | `lang` | `en`, `vi` | Page language. |
 
@@ -20,6 +20,8 @@ The address bar follows the chart, so copying it shares exactly what is on scree
 
 - Vietnamese stocks, indices, flows, ratios, world indices, commodities and FX: VNDirect public APIs.
 - Crypto: Binance public market data (`data-api.binance.vision`).
+- Corporate events, company news, the screener's prices and P/E, P/B, market cap: VNDirect finfo API.
+- Live streams: SSI FastConnect through a private relay (access code), VNDirect, Binance, OKX, Yahoo.
 
 Charting library: [Lightweight Charts](https://github.com/tradingview/lightweight-charts) by TradingView (Apache 2.0), inlined.
 
