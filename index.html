@@ -155,6 +155,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .scrtab td.up { color: var(--good); } .scrtab td.dn { color: var(--bad); }
 .bias { padding: 0 0 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 12px; }   /* no tinted callout (house rule) */
 .bias .st { font-size: 11px; color: var(--muted); margin-top: 2px; } .bias b.good { color: var(--good); } .bias b.bad { color: var(--bad); }
+.menulab { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 4px 2px 0; }
 .rchip { display: inline-block; min-width: 34px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700; text-align: center; color: var(--white); }   /* rating chips: the only pills */
 .rchip.buy { background: var(--good); } .rchip.sell { background: var(--bad); }
 .biaschip.up .pdot { background: var(--good); border-color: var(--good); } .biaschip.dn .pdot { background: var(--bad); border-color: var(--bad); } .biaschip .pdot { border-color: var(--muted); }
@@ -426,6 +427,12 @@ tbody tr[data-i]:hover { background: var(--panel); }
         <button type="button" data-sx="pt-ta-inv" aria-pressed="false" title="Đảo ngược trục giá: giá cao ở dưới">Đảo trục giá</button>
         <button type="button" data-sx="pt-ta-prevc" aria-pressed="false" title="Đường giá đóng cửa phiên trước (giá tham chiếu)">Đóng cửa phiên trước</button>
         <button type="button" data-sx="pt-ta-hilo" aria-pressed="false" title="Nhãn giá cao nhất và thấp nhất trong vùng đang xem">Nhãn cao / thấp</button>
+        <span class="menulab">Nhãn mức giá</span>
+        <button type="button" data-tl="px" aria-pressed="true" title="Giá trên nhãn vào lệnh, mục tiêu, cắt lỗ">Nhãn: giá</button>
+        <button type="button" data-tl="pct" aria-pressed="true" title="% so với điểm vào trên nhãn mục tiêu, cắt lỗ">Nhãn: %</button>
+        <button type="button" data-tl="cond" aria-pressed="true" title="Điều kiện vào lệnh (đóng cửa trên, mua quanh…)">Nhãn: điều kiện</button>
+        <button type="button" data-tl="name" aria-pressed="true" title="Tên cách tính hoặc mô hình">Nhãn: tên</button>
+        <button type="button" data-tl="rr" aria-pressed="true" title="Tỷ lệ lời/lỗ trên nhãn vào lệnh">Nhãn: lời/lỗ</button>
         <button type="button" data-sx="pt-ta-cd" aria-pressed="false" title="Đếm ngược tới lúc nến hiện tại đóng (khung phút, giờ)">Đếm ngược nến</button>
         <button type="button" id="pngHead" aria-pressed="false" title="In tên mã và chỉ báo ở đầu ảnh PNG">PNG: tiêu đề</button>
         <button type="button" id="pngSrc" aria-pressed="false" title="In dòng nguồn ở cuối ảnh PNG">PNG: nguồn</button>
@@ -1360,6 +1367,17 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Nhãn mức giá => Level labels
+Giá trên nhãn vào lệnh, mục tiêu, cắt lỗ => Price on the entry, target and stop labels
+Nhãn: giá => Label: price
+% so với điểm vào trên nhãn mục tiêu, cắt lỗ => % from the entry on target and stop labels
+Nhãn: % => Label: %
+Điều kiện vào lệnh (đóng cửa trên, mua quanh…) => Entry condition (close above, buy near…)
+Nhãn: điều kiện => Label: condition
+Tên cách tính hoặc mô hình => Method or pattern name
+Nhãn: tên => Label: name
+Tỷ lệ lời/lỗ trên nhãn vào lệnh => Reward/risk on the entry label
+Nhãn: lời/lỗ => Label: reward/risk
 quanh => around
 đã kiểm chứng => verified
 Theo kỳ vọng => Expected side
@@ -4232,6 +4250,10 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     else return;
     render(true);
   });
+  function tlMark() { const T = tlab(); document.querySelectorAll('[data-tl]').forEach(b => b.setAttribute('aria-pressed', String(!!T[b.dataset.tl]))); }
+  $('moreMenu').addEventListener('click', e => { const b = e.target.closest('[data-tl]'); if (!b) return; const T = tlab(); T[b.dataset.tl] = T[b.dataset.tl] ? 0 : 1;
+    safeSet('pt-ta-tlab', JSON.stringify(T)); tlMark(); planShowLines(); });   // planShowLines redraws the plan and, through patShow, the pattern
+  setTimeout(tlMark);
   $('styleSel').addEventListener('change', e => { state.style = e.target.value; safeSet('pt-ta-style', state.style); render(true); });
   $('benchList').innerHTML = BENCHES.map(b => `<option value="${b}">`).join('');
   const VN_COMPOSITE = new Set(['VNINDEX', 'HNX', 'HNXCOMPOSITE', 'UPCOM', 'UPCOMCOMPOSITE']);
@@ -5280,13 +5302,32 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (sigS.pending && sigS.pending.sym === state.sym && plan.rows.some(x => x.id === sigS.pending.id)) { plan.sel = sigS.pending.id; sigS.pending = null; planShowLines(); } plan.bias = INTRA.has(state.tf) && rows.length < 300 ? null : biasOf(rows); biasChip(); if (plan.sel && !plan.rows.some(x => x.id === plan.sel)) plan.sel = null; planShowLines(); }
     planList();
   }
+  // Labels on the entry, target and stop lines. Each part can be switched off from the More menu (pt-ta-tlab): price,
+  // % from the entry, the entry condition, the method or pattern name, reward/risk. Lines at the same price merge.
+  const TL_DEF = { px: 1, pct: 1, cond: 1, name: 1, rr: 1 };
+  const tlab = () => { try { return { ...TL_DEF, ...JSON.parse(safeGet('pt-ta-tlab') || '{}') }; } catch (e) { return { ...TL_DEF }; } };
+  function lvlLabel(kind, o) {
+    const T = tlab(); let h = { e: tr('Vào lệnh'), t: tr('Mục tiêu'), s: tr('Cắt lỗ') }[kind] + (o.k ? ' ' + o.k : '') + (o.ar ? ' ' + o.ar : '');
+    if (T.px) h += ' ' + fmtP(o.p);
+    if (kind !== 'e' && T.pct && o.pct) h += ` (${o.pct})`;
+    if (kind === 'e' && T.cond && o.cond) h += ` (${o.cond})`;
+    const parts = [h];
+    if (kind === 'e' && o.stop != null) parts.push(`${tr('cắt lỗ')} ${fmtP(o.stop)}`);
+    if (kind === 'e' && T.name && o.name) parts.push(o.name);
+    if (kind === 'e' && T.rr && o.rr) parts.push(`${tr('Lời/lỗ')} ${o.rr}`);
+    return parts.join(' · ');
+  }
+  function pushLevel(arr, item) {   // a second line at the same price joins the first one's label instead of printing over it
+    const p = item.pts[0].p, same = arr.find(d => d.lab0 && d.pts[0].p === d.pts[1].p && Math.abs(d.pts[0].p - p) <= Math.abs(p) * 0.0005);
+    if (same) { if (item.note) same.note = same.note ? `${same.note} | ${item.note}` : item.note; } else arr.push(item);
+  }
   function planShowLines() {
     const x0 = plan.rows.find(r => r.id === plan.sel), x = x0 && x0.sig ? { ...x0, ...x0.sig, t2: null, note: 'tín hiệu đã phát' } : x0, n = state.rows.length; plan.shown = [];   // a live plan: the levels of the signal that fired
     if (x) { const P = (i, p) => ptAt(i, p), a = Math.max(0, n - 31), b = n + 3, pc = v => `${v >= x.e ? '+' : ''}${((v / x.e - 1) * 100).toFixed(1)}%`;
-      const seg = (p, c, ls, note) => plan.shown.push({ type: 'trend', pts: [P(a, p), P(b, p)], c, ls, nonum: true, note, w: 1.5, lab0: true });
-      seg(x.e, 'navy', 'solid', `${tr('Vào lệnh')} ${fmtP(x.e)} (${tr(x.note)}) · ${tr(x.name)} · ${tr('Lời/lỗ')} ${((x.t - x.e) / (x.e - x.s)).toFixed(1)}`);
-      seg(x.t, 'accent', 'dash', `${tr('Mục tiêu')} ${fmtP(x.t)} (${pc(x.t)})`); if (x.t2) seg(x.t2, 'accent', 'dash', `${tr('Mục tiêu')} 2 ${fmtP(x.t2)} (${pc(x.t2)})`);
-      seg(x.s, 'grey', 'dash', `${tr('Cắt lỗ')} ${fmtP(x.s)} (${pc(x.s)})`); }
+      const seg = (p, c, ls, note) => pushLevel(plan.shown, { type: 'trend', pts: [P(a, p), P(b, p)], c, ls, nonum: true, note, w: 1.5, lab0: true });
+      seg(x.e, 'navy', 'solid', lvlLabel('e', { p: x.e, cond: tr(x.note), name: tr(x.name), rr: ((x.t - x.e) / (x.e - x.s)).toFixed(1) }));
+      seg(x.t, 'accent', 'dash', lvlLabel('t', { p: x.t, pct: pc(x.t) })); if (x.t2) seg(x.t2, 'accent', 'dash', lvlLabel('t', { k: '2', p: x.t2, pct: pc(x.t2) }));
+      seg(x.s, 'grey', 'dash', lvlLabel('s', { p: x.s, pct: pc(x.s) })); }
     patShow();
   }
   function biasChip() {
@@ -6352,7 +6393,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function patShapes({ f, k, lab, tr }) {   // pseudo-drawings in the page's own drawing styles
     const rows = state.rows, n = rows.length, P = (i, p) => ptAt(i, p), sw = f.swings, i0 = sw[0].i, i1 = sw[sw.length - 1].i;
     const end = tr.j != null ? tr.j : Math.min(n - 1 + Math.round((i1 - i0) * 0.3), i1 + (i1 - i0)), out = [];
-    const name = `${tr_(PAT_NAME[f.id])} · ${tr_(lab)} · ${Math.round(f.sim * 100)}%`;
+    const name = tlab().name ? `${tr_(PAT_NAME[f.id])} · ${tr_(lab)} · ${Math.round(f.sim * 100)}%` : '';
     const seg = (a, b, pa, pb, c, ls, note, lab0) => out.push({ type: 'trend', pts: [P(a, pa), P(b, pb)], c, ls, nonum: true, note, w: 1.5, lab0 });
     if (f.lines) { seg(f.iu, end, f.up(f.iu), f.up(end), 'navy', 'solid', name); seg(f.il, end, f.lo(f.il), f.lo(end), 'navy', 'solid'); }
     else {
@@ -6361,18 +6402,19 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     }
     // Entry, target and stop on the chart, as a trade ticket: % from the entry on each, reward : risk on the entry.
     const pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`, rr = (e, t, s) => Math.abs(e - s) ? (Math.abs(t - e) / Math.abs(e - s)).toFixed(1) : '–';
-    const ticket = (a, b, e, t, st, ar, entryNote) => {
-      seg(a, b, e, e, 'navy', 'solid', `${tr_('Vào lệnh')} ${ar} ${fmtP(e)}${entryNote || ''} · ${tr_('Lời/lỗ')} ${rr(e, t, st)}`, true);
-      seg(a, b, t, t, 'accent', 'dash', `${tr_('Mục tiêu')} ${fmtP(t)} (${pc(t, e)})`, true);
-      seg(a, b, st, st, 'grey', 'dash', `${tr_('Cắt lỗ')} ${fmtP(st)} (${pc(st, e)})`, true);
+    const lv = (a, b, p, c, ls, note) => pushLevel(out, { type: 'trend', pts: [P(a, p), P(b, p)], c, ls, nonum: true, note, w: 1.5, lab0: true });
+    const ticket = (a, b, e, t, st, ar, cond, both) => {   // both: a two-way form, where each side's stop is the other side's entry
+      lv(a, b, e, 'navy', 'solid', lvlLabel('e', { ar, p: e, cond, rr: rr(e, t, st), stop: both ? st : null }));
+      lv(a, b, t, 'accent', 'dash', lvlLabel('t', { p: t, pct: pc(t, e) }));
+      if (!both) lv(a, b, st, 'grey', 'dash', lvlLabel('s', { p: st, pct: pc(st, e) }));
     };
     const proj = tr.proj || (tr.st === 'forming' ? patProject(f, n) : null);   // not broken yet: where it triggers, drawn ahead of today
     // over the last bars, ending just past the last candle, so the labels stay inside the default view
     if (proj) for (const p of proj) ticket(Math.max(i1, n - 1 - Math.max(25, Math.round((i1 - i0) / 2))), n + 3, p.trig, p.target, p.stop, p.dir > 0 ? '↑' : '↓',
-      ` (${tr_(p.dir > 0 ? 'đóng cửa trên' : 'đóng cửa dưới')})`);
+      tr_(p.dir > 0 ? 'đóng cửa trên' : 'đóng cửa dưới'), proj.length > 1);
     if (tr.j != null) {   // after a breakout: the trade from the breakout bar, to the exit bar when there is one
       const a = tr.j, b = Math.max(tr.x != null ? tr.x : 0, tr.j + Math.max(8, Math.round((i1 - i0) / 2)));
-      ticket(a, b, tr.entry, tr.target, tr.stop, tr.dir > 0 ? '↑' : '↓', ` ${fmtDate(rows[tr.j].t).slice(0, 5)}`);
+      ticket(a, b, tr.entry, tr.target, tr.stop, tr.dir > 0 ? '↑' : '↓', fmtDate(rows[tr.j].t).slice(0, 5), false);
     }
     return out;
   }
