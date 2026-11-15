@@ -143,7 +143,12 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 #drawMag[data-mag="strong"] { color: var(--accent); }
 .tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
-.patpick span { flex: 1; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
+.patpick span { flex: 1; }
+.gr { font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.gr.good { color: var(--white); background: var(--navy); border-color: var(--navy); } .gr.ok { color: var(--navy); border-color: var(--navy); }
+.vd.good { color: var(--good); font-weight: 600; } .vd.bad { color: var(--bad); }
+.linkbtn { border: 0; background: none; padding: 4px 0; color: var(--accent); cursor: pointer; font-size: 11px; text-decoration: underline; }
+details.pathelp summary { cursor: pointer; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
 .ctx.replaying > .chips, .ctx.replaying > #drawStyle { display: none !important; }
 /* full screen: the chart row alone */
 .chartrow:fullscreen { background: var(--white); padding: 10px; }
@@ -218,8 +223,11 @@ select { font: inherit; font-size: 12px; border: 1px solid var(--line); border-r
 .ichip .chip { border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 9px; border-radius: 999px; color: var(--fg); }
 .ichip .chip[data-on="false"] { color: var(--muted); text-decoration: line-through; text-decoration-color: #B9C2CB; }
 .ichip .chip[data-on="false"] .sw { opacity: .25; }
-.pchip { border: 1px dashed var(--accent); border-radius: 999px; background: var(--white); padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--fg); }
-.pchip b { font-weight: 600; } .pchip .k { color: var(--muted); }
+.pchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); padding: 3px 10px;
+  font-size: 12px; line-height: 1.4; white-space: nowrap; cursor: pointer; color: var(--fg); }
+.pchip:hover { border-color: var(--navy); } .pchip[aria-pressed="true"] { border-color: var(--navy); background: var(--mist); color: var(--fg); } .pchip[aria-pressed="true"] b { font-weight: 600; } .patrow.on { background: var(--mist); } .pchip b { font-weight: 500; } .pchip .k { color: var(--muted); font-variant-numeric: tabular-nums; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--navy); flex: none; } .pdot.good { background: var(--navy); }
+.plab { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .sw { width: 14px; height: 3px; border-radius: 2px; background: var(--c); flex: none; }
 .mini { border: 0; background: transparent; padding: 3px 5px; color: var(--muted); display: inline-flex; align-items: center; }
 .mini:hover { color: var(--fg); }
@@ -381,6 +389,8 @@ tbody tr[data-i]:hover { background: var(--panel); }
         <button type="button" id="fsBtn" title="Toàn màn hình (Shift+F)">Toàn màn hình</button>
         <button type="button" id="cmdBtn" title="Tìm mã, chỉ báo hoặc lệnh (Ctrl+K)">Tìm nhanh</button>
         <button type="button" id="keysBtn" title="Danh sách phím tắt (?)">Phím tắt</button>
+        <button type="button" id="tplBtn" title="Lưu và mở bộ chỉ báo, bố cục biểu đồ có tên">Mẫu và bố cục…</button>
+        <button type="button" data-sx="pt-ta-ev" aria-pressed="false" title="Cổ tức tiền, cổ tức cổ phiếu, cổ phiếu thưởng và ĐHCĐ trên biểu đồ (VNDirect)">Sự kiện trên biểu đồ</button>
         <button type="button" id="ssiBtn" title="Nhập mã truy cập để dùng nguồn SSI thời gian thực (chỉ trên trình duyệt này)">Nguồn SSI…</button>
         <button type="button" id="csvBtn" title="Nạp file CSV: Date, Open, High, Low, Close, Volume">Nạp CSV</button>
         <button type="button" id="boardBtn" aria-pressed="false" title="Nến xanh/đỏ như bảng giá; tắt thì nến một màu: rỗng là tăng, đặc là giảm">Màu bảng giá</button>
@@ -450,6 +460,13 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <div id="editor" hidden></div>
   </div>
   <dialog id="cmdk" class="cmdk"><input id="cmdkIn" type="search" placeholder="Tìm mã, chỉ báo hoặc lệnh…" aria-label="Tìm mã, chỉ báo hoặc lệnh"><div id="cmdkList" role="listbox"></div></dialog>
+  <dialog id="tplDlg" class="keysdlg">
+    <h3>Bộ chỉ báo đã lưu</h3><div id="tplInds"></div>
+    <div class="wlform"><input id="tplIndName" type="text" maxlength="40" placeholder="Tên bộ chỉ báo…" aria-label="Tên bộ chỉ báo"><button type="button" id="tplIndSave">Lưu bộ hiện tại</button></div>
+    <h3 style="margin-top:12px">Bố cục đã lưu</h3><p class="k" style="margin:0 0 6px;font-size:12px">Mã, khung nến, kiểu biểu đồ, thang giá và bộ chỉ báo.</p><div id="tplLays"></div>
+    <div class="wlform"><input id="tplLayName" type="text" maxlength="40" placeholder="Tên bố cục…" aria-label="Tên bố cục"><button type="button" id="tplLaySave">Lưu bố cục hiện tại</button></div>
+    <form method="dialog"><button class="primary">Đóng</button></form>
+  </dialog>
   <dialog id="keysDlg" class="keysdlg">
     <h3>Phím tắt</h3>
     <table>
@@ -464,6 +481,8 @@ tbody tr[data-i]:hover { background: var(--panel); }
       <tr><td>Mũi tên</td><td>Nhích hình đang chọn</td></tr>
       <tr><td>R, Shift + R</td><td>Xoay hình đang chọn 15°</td></tr>
       <tr><td>Esc</td><td>Bỏ chọn, thoát công cụ</td></tr>
+      <tr><td>Alt + T, H, V, J, F, C</td><td>Đường xu hướng, đường ngang, đường dọc, tia ngang, Fibonacci, chữ thập</td></tr>
+      <tr><td>Ctrl/⌘ + C, Ctrl/⌘ + V</td><td>Sao chép, dán hình đang chọn</td></tr>
       <tr><td>?</td><td>Danh sách phím tắt</td></tr>
     </table>
     <form method="dialog"><button class="primary">Đóng</button></form>
@@ -503,10 +522,13 @@ tbody tr[data-i]:hover { background: var(--panel); }
       <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
       <section data-w="dw"><h3>Cửa sổ dữ liệu</h3><div id="dwBody" class="dwbody"></div></section>
       <section data-w="obj"><h3>Hình vẽ <span id="objCount" class="k"></span></h3><div id="objBody"></div></section>
-      <section data-w="pat"><h3>Mô hình giá</h3>
+      <section data-w="pat"><h3>Mô hình đang hình thành</h3><div id="patBody"></div></section>
+      <section data-w="patpr"><h3>Mô hình theo giai đoạn</h3>
         <div class="prbox" id="prBox"><span class="k">Giai đoạn</span><input type="date" id="prFrom" aria-label="Từ ngày"><span>–</span><input type="date" id="prTo" aria-label="Đến ngày">
           <button type="button" id="prPick" title="Bấm hai điểm trên biểu đồ: đầu và cuối giai đoạn">Chọn trên biểu đồ</button><button type="button" id="prClear" aria-label="Bỏ giai đoạn" title="Bỏ giai đoạn: xem toàn bộ lịch sử">×</button></div>
-        <div id="prOut"></div><div id="patBody"></div></section>
+        <div id="prOut"></div></section>
+      <section data-w="pattl"><h3>Dòng thời gian mô hình</h3><div id="patTl"></div></section>
+      <section data-w="patrec"><h3>Thống kê mô hình của mã</h3><div id="patRec"></div></section>
     </aside>
   </div>
 
@@ -1264,6 +1286,65 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+không có mô hình khớp tốt => no good match
+Mô hình đang hình thành => Patterns now
+Mô hình theo giai đoạn => Patterns by period
+Dòng thời gian mô hình => Pattern timeline
+Thống kê mô hình của mã => This symbol's pattern record
+khớp tốt => good match
+khớp vừa => medium match
+khớp yếu => weak match
+Khớp tốt ≥ 80% · khớp vừa 70–80% · khớp yếu &lt; 70% (ẩn). Bấm để xem trên biểu đồ. => Good match ≥ 80% · medium 70–80% · weak < 70% (hidden). Click to see it on the chart.
+Không có mô hình khớp tốt hoặc vừa đang hình thành. => No good or medium match forming now.
+Không có mô hình khớp tốt đang hình thành => No good match forming now
+mô hình khớp yếu => weak matches
+Mã này: => This symbol:
+tới mục tiêu => target reached
+dính cắt lỗ => stop hit
+hiệu quả => works
+kém => poor
+trung tính => mixed
+ít mẫu => few cases
+chưa có lần nào => no case yet
+mới nhất ở trên => newest first
+mỗi đoạn là mô hình mô tả rõ nhất đoạn giá đó. => each stretch shows the pattern that best describes it.
+Chọn giai đoạn ở bảng "Mô hình theo giai đoạn" để thu hẹp. => Choose a period in "Patterns by period" to narrow it.
+Mỗi dòng: những lần mô hình đó phá vỡ trong lịch sử mã này, giá tới mục tiêu trước hay dính cắt lỗ trước, và lãi/lỗ trung bình mỗi lần. => Each row: the times that pattern broke out in this symbol's history, whether price reached the target or hit the stop first, and the average gain or loss each time.
+"Hiệu quả" = tới mục tiêu nhiều hơn dính cắt lỗ và lãi trung bình dương, từ 8 lần trở lên. => "Works" = reached the target more often than the stop, with a positive average, over 8 cases or more.
+Bấm một dòng để xem từng lần trên biểu đồ. => Click a row to see each case on the chart.
+Cách tính => How it is computed
+Số lần mô hình phá vỡ => Number of breakouts
+Giá tới mục tiêu trước khi chạm cắt lỗ => Price reached the target before the stop
+Số lần => Times
+Tới MT => Target
+Dính CL => Stop
+Lãi TB => Avg
+Đánh giá => Verdict
+Tính trên khung => Compute on
+Khung của biểu đồ => Chart's candle size
+kỳ đã đóng => closed periods
+Đường xu hướng, đường ngang, đường dọc, tia ngang, Fibonacci, chữ thập => Trend line, horizontal line, vertical line, horizontal ray, Fibonacci, cross line
+Sao chép, dán hình đang chọn => Copy, paste the selected drawing
+Lưu và mở bộ chỉ báo, bố cục biểu đồ có tên => Save and open named indicator sets and chart layouts
+Mẫu và bố cục… => Templates and layouts…
+Cổ tức tiền, cổ tức cổ phiếu, cổ phiếu thưởng và ĐHCĐ trên biểu đồ (VNDirect) => Cash and stock dividends, bonus shares and AGMs on the chart (VNDirect)
+Sự kiện trên biểu đồ => Events on chart
+Bộ chỉ báo đã lưu => Saved indicator sets
+Tên bộ chỉ báo… => Indicator set name…
+Tên bộ chỉ báo => Indicator set name
+Lưu bộ hiện tại => Save current set
+Bố cục đã lưu => Saved layouts
+Mã, khung nến, kiểu biểu đồ, thang giá và bộ chỉ báo. => Symbol, candle size, chart type, price scale and indicators.
+Tên bố cục… => Layout name…
+Tên bố cục => Layout name
+Lưu bố cục hiện tại => Save current layout
+chỉ báo => indicators
+Dùng => Use
+Chưa có. => None yet.
+Cổ tức CP => Stock div.
+Thưởng CP => Bonus shares
+Cổ tức => Dividend
+ĐHCĐ => AGM
 Kiểu biểu đồ => Chart type
 Nến rỗng => Hollow candles
 Thanh OHLC => OHLC bars
@@ -1418,13 +1499,26 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const VND_CODE = { HNXINDEX: 'HNX', UPCOMINDEX: 'UPCOM' };
   // Intraday: how many calendar days one request covers, per resolution (older windows load on scroll).
   const INTRA_DAYS = { 1: 21, 5: 75, 15: 150, 30: 240, 60: 365 };
-  const INTRA = new Set(['1', '5', '15', '30', '60']);
+  const INTRA = new Set(['1', '5', '15', '30', '60', '120', '240']);
+  // 2- and 4-hour candles are built from the hourly feed (VNDirect has no such resolution), counted from the 9:00 open:
+  // 4h is the morning and the afternoon session, 2h is 9-11, 11-13 (the 11:00-11:30 half hour) and 13-15.
+  const HOURS_OF = { 120: 2, 240: 4 }, resOf = tf => HOURS_OF[tf] ? '60' : tf;
+  function aggHours(rows, h) {
+    const out = []; let cur = null, key = null;
+    for (const r of rows) {
+      const m = Math.floor(r.t / 60) % 1440, day = Math.floor(r.t / 86400), k = day * 100 + Math.floor((m - 540) / (h * 60));
+      if (k !== key) { if (cur) out.push(cur); key = k; cur = { ...r }; continue; }
+      if (r.h > cur.h) cur.h = r.h; if (r.l < cur.l) cur.l = r.l; cur.c = r.c; cur.v += r.v;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
   const VN_OFFSET = 7 * 3600; // intraday bars are drawn on Vietnam clock time
   // chart types, TradingView's list where a time axis can carry it (Renko, Kagi, line break and point & figure cannot)
   const STYLES = ['c', 'h', 'b', 'col', 'hl', 'l', 'lm', 'step', 'a', 'base'], LINEY = new Set(['l', 'lm', 'step', 'a', 'base', 'col']);
-  const TF_LABEL = EN ? { 1: '1-minute', 5: '5-minute', 15: '15-minute', 30: '30-minute', 60: 'Hourly', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' }
-    : { 1: '1 phút', 5: '5 phút', 15: '15 phút', 30: '30 phút', 60: '1 giờ', D: 'Ngày', W: 'Tuần', M: 'Tháng', Q: 'Quý', Y: 'Năm' };
-  const TF_EN = { 1: '1m', 5: '5m', 15: '15m', 30: '30m', 60: '1h', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' };
+  const TF_LABEL = EN ? { 1: '1-minute', 5: '5-minute', 15: '15-minute', 30: '30-minute', 60: 'Hourly', 120: '2-hour', 240: '4-hour', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' }
+    : { 1: '1 phút', 5: '5 phút', 15: '15 phút', 30: '30 phút', 60: '1 giờ', 120: '2 giờ', 240: '4 giờ', D: 'Ngày', W: 'Tuần', M: 'Tháng', Q: 'Quý', Y: 'Năm' };
+  const TF_EN = { 1: '1m', 5: '5m', 15: '15m', 30: '30m', 60: '1h', 120: '2h', 240: '4h', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' };
   const PRESETS = ['VNINDEX', 'VN30', 'VCB', 'FPT', 'HPG', 'SSI', 'MWG'];
 
   // House palette (others/slide_master/build_v3/housestyle.py). Candles and volume wear the price-board up/down
@@ -2698,7 +2792,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const DEFAULT_INDS = () => [];   // candles only; the user adds what they want (16 Nov: "only the candle chart")
   // a saved list back to indicators; "join" (drawn in another indicator's pane) is kept as that one's position
   function revive(raw) {
-    const ok = raw.filter(x => x && IND[x.type]), list = ok.map(x => Object.assign(mk(x.type, x.p, x.c), { on: x.on !== false, hi: !!x.hi, name: x.name, noAxis: x.noAxis, noLegend: x.noLegend }));
+    const ok = raw.filter(x => x && IND[x.type]), list = ok.map(x => Object.assign(mk(x.type, x.p, x.c), { on: x.on !== false, hi: !!x.hi, name: x.name, noAxis: x.noAxis, noLegend: x.noLegend, mtf: x.mtf }));
     ok.forEach((x, k) => { if (x.join != null && list[x.join] && x.join !== k) list[k].join = list[x.join].uid; });
     return list;
   }
@@ -2712,7 +2806,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     } catch (e) { /* fall back to defaults */ }
     return DEFAULT_INDS();
   }
-  const snapshot = () => state.inds.map(x => ({ type: x.type, p: x.p, c: x.c, on: x.on, hi: !!x.hi, name: x.name || undefined, noAxis: x.noAxis || undefined, noLegend: x.noLegend || undefined,
+  const snapshot = () => state.inds.map(x => ({ type: x.type, p: x.p, c: x.c, on: x.on, hi: !!x.hi, name: x.name || undefined, noAxis: x.noAxis || undefined, noLegend: x.noLegend || undefined, mtf: x.mtf || undefined,
     join: x.join && state.inds.some(y => y.uid === x.join) ? state.inds.findIndex(y => y.uid === x.join) : undefined }));
   const saveInds = () => safeSet('pt-ta-inds-v5', JSON.stringify(snapshot()));
   function paramsOf(inst) {
@@ -3127,6 +3221,23 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       return { time: r.t, open: o, high: Math.max(r.h, o, c), low: Math.min(r.l, o, c), close: c }; });
   }
 
+  // Higher-timeframe indicators: computed on daily, weekly or monthly bars and drawn on this chart. Each bar shows the
+  // value of the last COMPLETED higher bar, so history carries no look-ahead (the current week counts once it closes).
+  const MTF_OF = tf => INTRA.has(tf) ? ['D'] : tf === 'D' ? ['W', 'M'] : tf === 'W' ? ['M'] : [];
+  const MTF_PRICE_ONLY = d => !/R\.(ext|flow|bench|mkt|sum|align|mean)\b/.test(String(d.calc));   // built from OHLCV alone
+  const mtfOk = inst => !!inst.mtf && MTF_OF(state.tf).includes(inst.mtf) && MTF_PRICE_ONLY(IND[inst.type]) && state.daily.length > 0;
+  function mtfCalc(inst, d, p, c, rows) {
+    const hi = inst.mtf === 'D' ? state.daily : aggregate(state.daily, inst.mtf), key = t => inst.mtf === 'D' ? dayOf(t) : bucketKey(dayOf(t), inst.mtf);
+    const H = { o: hi.map(r => r.o), h: hi.map(r => r.h), l: hi.map(r => r.l), c: hi.map(r => r.c), v: hi.map(r => r.v), t: hi.map(r => r.t) };
+    const res = finish(d, p, d.calc(withSrc(H, p), p, c) || {}, inst.c), at = new Map(hi.map((r, k) => [key(r.t), k]));
+    const idx = rows.map(r => { const k = at.get(key(r.t)); return k == null ? -1 : k - 1; });   // the bar before: the last one closed
+    for (const o of res.out || []) {
+      if (o.values) o.values = idx.map(k => k >= 0 ? o.values[k] ?? null : null);
+      if (o.colors) o.colors = idx.map(k => k >= 0 ? o.colors[k] : null);
+      if (o.marks) o.marks = [];
+    }
+    return res;
+  }
   // ---------- render ----------
   // shift: bars prepended since the last render, so the view stays on the same candles.
   function render(keepRange, shift) {
@@ -3143,7 +3254,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     state.out = state.inds.map(inst => {
       const d = IND[inst.type]; if (!d) return null;
       const p = paramsOf(inst), c = colorsOf(inst);
-      let res; try { res = finish(d, p, d.calc(withSrc(R, p), p, c) || {}, inst.c); } catch (e) { console.warn(`Chỉ báo ${inst.type} lỗi:`, e); res = {}; }
+      let res; try { res = mtfOk(inst) ? mtfCalc(inst, d, p, c, rows) : finish(d, p, d.calc(withSrc(R, p), p, c) || {}, inst.c); } catch (e) { console.warn(`Chỉ báo ${inst.type} lỗi:`, e); res = {}; }
       return { inst, d, p, c, out: res.out || [], levels: res.levels || [], overlay: res.overlay ?? d.overlay };
     }).filter(Boolean);
     state.spike = state.out.find(o => o.inst.on && o.d.id === 'spike') || null;
@@ -3206,6 +3317,31 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const LABEL_PX = 72;
   let markersSpan = 0;
   let markersAny = false;
+  // Corporate events from VNDirect (ex-date of cash and stock dividends, bonus shares; AGM dates), placed on the bar
+  // that holds the date. Fetched once per symbol.
+  const evCache = {};
+  function evLoad(sym) {
+    if (evCache[sym] || GLOBAL.has(sym) || isCrypto(sym) || INDICES.has(sym)) return;
+    evCache[sym] = [];
+    getJSON(`${FINFO}/events?q=code:${encodeURIComponent(sym)}~locale:VN&size=500`).then(j => {
+      evCache[sym] = (j.data || []).filter(x => ['DIVIDEND', 'STOCKDIV', 'KINDDIV', 'MEETING'].includes(x.type) && x.effectiveDate);
+      if (sym === state.sym) renderMarkers();
+    }).catch(() => { delete evCache[sym]; });
+  }
+  function evMarks() {
+    const rows = state.rows, ev = evCache[state.sym]; evLoad(state.sym); if (!ev || !ev.length || !rows.length) return [];
+    const out = [], intra = isIntra(), first = dayOf(rows[0].t), last = dayOf(rows[rows.length - 1].t);
+    for (const x of ev) {
+      const d = x.effectiveDate; if (d < first || d > last) continue;
+      let i = -1;
+      if (intra) i = rows.findIndex(r => dayOf(r.t) >= d); else for (let k = rows.length - 1; k >= 0; k--) if (dayOf(rows[k].t) <= d) { i = k; break; }
+      if (i < 0) continue;
+      const text = x.type === 'DIVIDEND' ? `${tr('Cổ tức')} ${x.dividend ? x.dividend.toLocaleString('en-US') + 'đ' : ''}` : x.type === 'STOCKDIV' ? `${tr('Cổ tức CP')} ${x.ratio ? x.ratio + '%' : ''}`
+        : x.type === 'KINDDIV' ? `${tr('Thưởng CP')} ${x.ratio ? x.ratio + '%' : ''}` : tr('ĐHCĐ');
+      out.push({ i, dir: 0, color: x.type === 'MEETING' ? C.gray2 : C.ocean, text: text.trim() });
+    }
+    return out;
+  }
   function renderMarkers() {
     const sp = state.spike, rows = state.rows, items = [];
     if (sp && rows.length) {
@@ -3215,6 +3351,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
         items.push({ i, dir: marks[i], color: sp.c.mark, text: `${ratio[i].toFixed(1)}× ${chg >= 0 ? '+' : '–'}${Math.abs(chg).toFixed(1)}%` });
       }
     }
+    if (sxOn('pt-ta-ev')) for (const m of evMarks()) items.push(m);   // dividends, bonus shares, AGMs
     for (const o of state.out) if (o.inst.on) for (const out of o.out) if (out.kind === 'marks')
       for (const m of out.marks) if (rows[m.i]) items.push(Object.assign({ color: o.c.mark || C.navy }, m));
     markersAny = items.length > 0;
@@ -3295,7 +3432,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return out;
   }
   // Weekly and longer candles are built from daily bars; intraday comes straight from its own feed.
-  const seriesAll = () => isIntra() ? (state.intra[state.tf] || []) : aggregate(state.daily, state.tf);
+  const seriesAll = () => isIntra() ? (HOURS_OF[state.tf] ? aggHours(state.intra['60'] || [], HOURS_OF[state.tf]) : state.intra[state.tf] || []) : aggregate(state.daily, state.tf);
   const series = () => { const a = seriesAll(); return rp.on && rp.t != null ? a.filter(r => r.t <= rp.t) : a; };   // bar replay
   function applyTf(keepRange) {
     state.rows = series();
@@ -3410,7 +3547,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       `<button type="button" class="mini" data-act="close" aria-label="Đóng">${ICON_X}</button></div>` +
       `<div class="ed-name"><label class="ed-text">Tên hiển thị<input type="text" data-name maxlength="40" value="${esc(inst.name || '')}" placeholder="${esc(d.label(p))}"></label>` +
       `<label class="ed-chk"><input type="checkbox" data-flag="noAxis"${inst.noAxis ? '' : ' checked'}> Nhãn trên trục giá</label>` +
-      `<label class="ed-chk"><input type="checkbox" data-flag="noLegend"${inst.noLegend ? '' : ' checked'}> Giá trị ở chú giải</label>` + joinSel(inst) + `</div>` +
+      `<label class="ed-chk"><input type="checkbox" data-flag="noLegend"${inst.noLegend ? '' : ' checked'}> Giá trị ở chú giải</label>` + joinSel(inst) + mtfSel(inst, d) + `</div>` +
       (d.text || []).map(q => `<label class="ed-text">${esc(q.label)}<textarea data-t="${q.k}" rows="2" spellcheck="false">${esc(p[q.k])}</textarea></label>`).join('') +
       (d.text && FERR.get(p.f) ? `<p class="ed-err">Lỗi: ${esc(FERR.get(p.f))}</p>` : '') +
       (d.help ? `<p class="muted ed-help">${esc(d.help).replace(/\. /g, '.<br>')}</p>` : '') +
@@ -3431,6 +3568,16 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   let typing = 0;
   $('editor').addEventListener('input', e => { const inp = e.target.closest('input[data-name]'), inst = state.inds.find(x => x.uid === state.editing); if (!inp || !inst) return;
     inst.name = inp.value.trim(); clearTimeout(typing); typing = setTimeout(() => { changed(); renderChips(); }, 250); });
+  function mtfSel(inst, d) {
+    const opts = MTF_OF(state.tf); if (!opts.length || !MTF_PRICE_ONLY(d)) return '';
+    return `<label class="ed-text">${tr('Tính trên khung')}<select data-mtf><option value="">${tr('Khung của biểu đồ')}</option>`
+      + opts.map(t => `<option value="${t}"${inst.mtf === t ? ' selected' : ''}>${esc(TF_LABEL[t])} (${tr('kỳ đã đóng')})</option>`).join('') + '</select></label>';
+  }
+  $('editor').addEventListener('change', e => { const sel = e.target.closest('select[data-mtf]'), inst = sel && state.inds.find(x => x.uid === state.editing); if (!inst) return;
+    const old = inst.mtf, base = inst.name && old ? inst.name.replace(new RegExp(` · ${TF_EN[old]}$`), '') : inst.name;
+    inst.mtf = sel.value || undefined; const d = IND[inst.type];
+    inst.name = inst.mtf ? `${base || d.label(paramsOf(inst))} · ${TF_EN[inst.mtf]}` : (base && base !== d.label(paramsOf(inst)) ? base : undefined);
+    changed(); renderChips(); });
   // an indicator in its own pane can instead draw in another one's pane, as the moving averages share the price pane
   function joinSel(inst) {
     const me = state.out.find(o => o.inst === inst); if (!me || me.overlay) return '';
@@ -3531,9 +3678,9 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (state.tf === 'Y') { state.months = 0; markRange(); }
     }
     const req = state.reqId;
-    if (isIntra() && !(state.intra[state.tf] || []).length) {
+    if (isIntra() && !(state.intra[resOf(state.tf)] || []).length) {
       setStatus('loading', EN ? `Loading ${TF_LABEL[state.tf].toLowerCase()} candles for ${state.sym}…` : `Đang tải nến ${TF_LABEL[state.tf]} ${state.sym}…`);
-      try { await loadIntra(state.tf, true); }
+      try { await loadIntra(resOf(state.tf), true); }
       catch (err) { if (req === state.reqId) setStatus('error', `${EN ? `Could not load ${TF_LABEL[state.tf].toLowerCase()} candles` : `Không tải được nến ${TF_LABEL[state.tf]}`}: ${err.message || 'lỗi không rõ'}`); return; }
       if (req !== state.reqId) return;
     }
@@ -4495,11 +4642,11 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   // Scrolling to the left edge of an intraday chart pulls the next older window, as on TradingView.
   chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
     if (!range || rendering || state.busy || !isIntra() || state.source !== 'vnd' || !state.rows.length) return;
-    if (performance.now() - renderedAt < 600 || range.from > 15 || state.done[state.tf]) return;
-    const req = state.reqId, res = state.tf; state.busy = true;
+    if (performance.now() - renderedAt < 600 || range.from > 15 || state.done[resOf(state.tf)]) return;
+    const req = state.reqId, res = resOf(state.tf); state.busy = true;
     setStatus('loading', `${statusLine()} · đang tải phiên cũ hơn…`);
     loadIntra(res, false)
-      .then(added => { if (req === state.reqId && res === state.tf && added) applyTf(true); if (req === state.reqId) setStatus('ok', statusLine()); })
+      .then(added => { if (req === state.reqId && res === resOf(state.tf) && added) applyTf(true); if (req === state.reqId) setStatus('ok', statusLine()); })
       .catch(err => { if (req === state.reqId) setStatus('error', `${statusLine()} · ${err.message || 'lỗi tải dữ liệu'}`); })
       .finally(() => { state.busy = false; });
   });
@@ -4518,7 +4665,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (req !== state.reqId) return;
       if (state.daily.length < 30) throw { code: 'empty', message: `VNDirect chỉ có ${state.daily.length} phiên cho ${sym}. Kiểm tra lại mã.` };
       if (GLOBAL.has(sym) && isIntra()) { state.tf = 'D'; markTf(); }
-      if (isIntra()) { await loadIntra(state.tf, true); if (req !== state.reqId) return; }
+      if (isIntra()) { await loadIntra(resOf(state.tf), true); if (req !== state.reqId) return; }
       hideOverlay(); applyTf(false);
       setStatus('ok', statusLine()); syncURL(); alertLines(); checkAlerts(); feedStart(); histPush(); wlDraw();
       safeSet('pt-ta-sym', sym + (GLOBAL.has(sym) && !isCrypto(sym) ? '|w' : ''));   // crypto needs no catalogue: it loads at once   // reopened (or after a language switch) on the same symbol
@@ -4538,7 +4685,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function statusLine() {
     const rows = state.rows, n = rows.length, src = state.source === 'csv' ? 'CSV' : isCrypto(state.sym) ? 'Binance' : 'VNDirect';
     if (!n) return src;
-    const more = isIntra() && state.source === 'vnd' && !state.done[state.tf] ? ' · kéo sang trái để tải thêm' : '';
+    const more = isIntra() && state.source === 'vnd' && !state.done[resOf(state.tf)] ? ' · kéo sang trái để tải thêm' : '';
     return `${src} · ${n.toLocaleString('en-US')} ${EN ? `${TF_LABEL[state.tf].toLowerCase()} candles` : `nến ${TF_LABEL[state.tf].toLowerCase()}`} · ${fmtDate(rows[0].t)} → ${fmtDate(rows[n - 1].t)}${more}`;
   }
 
@@ -4651,7 +4798,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (!isCrypto(sym) && (GLOBAL.has(sym) || !force && !vnOpen())) return;
     liveBusy = true;
     try {
-      const res = isIntra() ? tf : 'D', fresh = await lastBars(sym, res);
+      const res = isIntra() ? resOf(tf) : 'D', fresh = await lastBars(sym, res);
       if (req !== state.reqId || tf !== state.tf) return;
       if (!mergeBars(res === 'D' ? state.daily : (state.intra[res] = state.intra[res] || []), fresh)) return;
       tickDraw();
@@ -5073,7 +5220,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('dockBtn').addEventListener('click', () => setDock($('dock').hidden));
   // widgets in the panel: order, folded, closed and height, kept per browser as pt-ta-dockl
   { const dock = $('dock'), secs = () => [...dock.querySelectorAll(':scope > section[data-w]')], W = Object.fromEntries(secs().map(x => [x.dataset.w, x]));
-    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', dw: 'Cửa sổ dữ liệu', obj: 'Hình vẽ', pat: 'Mô hình giá' };
+    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', dw: 'Cửa sổ dữ liệu', obj: 'Hình vẽ', pat: 'Mô hình đang hình thành',
+      patpr: 'Mô hình theo giai đoạn', pattl: 'Dòng thời gian mô hình', patrec: 'Thống kê mô hình của mã' };
     let L = {}; try { L = JSON.parse(safeGet('pt-ta-dockl') || '{}') || {}; } catch (e) {}
     L = { order: Array.isArray(L.order) ? L.order : [], fold: L.fold || {}, hide: L.hide || {}, h: L.h || {} };
     const save = () => { L.order = secs().map(x => x.dataset.w); safeSet('pt-ta-dockl', JSON.stringify(L)); };
@@ -5177,7 +5325,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const PAT_NAME = { dtop: 'Hai đỉnh', dbot: 'Hai đáy', ttop: 'Ba đỉnh', tbot: 'Ba đáy', hs: 'Vai đầu vai', ihs: 'Vai đầu vai ngược', atri: 'Tam giác tăng',
     dtri: 'Tam giác giảm', stri: 'Tam giác cân', rwedge: 'Nêm tăng', fwedge: 'Nêm giảm', chup: 'Kênh tăng', chdn: 'Kênh giảm', rect: 'Hình chữ nhật', broad: 'Mở rộng' };
   const PAT_SCALE = [[3, 'sóng ngắn'], [7, 'sóng vừa'], [15, 'sóng dài']];
-  const pat = { on: safeGet('pt-ta-pat') === '1', shown: [], live: [], stats: null, statKey: '', ver: 0, pick: null };   // pick: {id, i} a past breakout on show
+  const pat = { weak: safeGet('pt-ta-patweak') === '1', on: safeGet('pt-ta-pat') === '1', shown: [], live: [], stats: null, statKey: '', ver: 0, pick: null };   // pick: {id, i} a past breakout on show
   function patATR(R) {
     const n = R.c.length, a = new Array(n).fill(null); let rma = null;   // Wilder's ATR(14)
     for (let i = 1; i < n; i++) { const tr = Math.max(R.h[i] - R.l[i], Math.abs(R.h[i] - R.c[i - 1]), Math.abs(R.l[i] - R.c[i - 1])); rma = rma == null ? tr : (rma * 13 + tr) / 14; a[i] = rma; }
@@ -5291,7 +5439,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     }
     if (stats) { for (const s of Object.values(stats)) s.ev.sort((a, b) => a.tr.j - b.tr.j);
       const same = pat.statKey.startsWith(`${state.sym}|${state.tf}|`), p = same && pat.pick, ev = p && stats[p.id] && stats[p.id].ev;
-      pat.pick = ev ? { id: p.id, i: Math.min(p.i, ev.length - 1) } : null; if (!same) pat.extra = null;
+      pat.pick = ev ? { id: p.id, i: Math.min(p.i, ev.length - 1) } : null; if (!same) { pat.extra = null; pat.focus = null; }
       pat.stats = stats; pat.statKey = key; pat.cand = cand.slice(); pat.tl = patTimeline(cand); pat.prKey = ''; }
     pat.R = R; pat.A = A;
     pat.live = live; patShow(); patList(); patPeriodRun();
@@ -5346,8 +5494,17 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
         + `<div class="lv">${lv}</div><div class="k">${rec}</div></div>`;
     }).join('');
   }
+  // Match grades: good >= 80%, medium 70-80%, weak below (hidden unless asked for: they fit the shape only loosely)
+  const pct = sim => Math.round(sim * 100);   // grades on the % shown, so a 70% is never called weak
+  const patGrade = sim => pct(sim) >= 80 ? ['good', 'khớp tốt'] : pct(sim) >= 70 ? ['ok', 'khớp vừa'] : ['weak', 'khớp yếu'];
+  const patVisible = x => pat.weak || pct(x.f.sim) >= 70;
+  const patVerdict = s => !s ? ['', 'chưa có lần nào'] : s.n < 8 ? ['', 'ít mẫu'] : s.tgt > s.stop && s.ret > 0 ? ['good', 'hiệu quả'] : s.tgt < s.stop || s.ret < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
   const patPicked = () => pat.pick && pat.stats && pat.stats[pat.pick.id] ? pat.stats[pat.pick.id].ev[pat.pick.i] : null;
-  function patShow() { const p = pat.extra || patPicked(); pat.shown = pat.live.flatMap(patShapes).concat(p && !pat.live.some(x => x.f === p.f || (x.tr.j != null && x.tr.j === p.tr.j && x.f.id === p.f.id)) ? patShapes(p) : []); pat.ver++; }
+  // One pattern on the chart at a time: a past one picked from the lists, else the focused live one (the best match
+  // until another is clicked). Several at once crossed each other into a tangle.
+  const patKey = x => `${x.f.id}|${x.k}|${x.f.swings[0].i}`;
+  function patFocus() { const vis = pat.live.filter(patVisible).sort((a, b) => b.f.sim - a.f.sim); return vis.find(x => patKey(x) === pat.focus) || vis[0] || null; }
+  function patShow() { const p = pat.extra || patPicked() || patFocus(); pat.shown = p ? patShapes(p) : []; pat.ver++; }
   function patZoom(x) {   // the form from its first swing to the end of its trade (or today)
     const n = state.rows.length, i0 = x.f.swings[0].i, i1 = x.tr.x != null ? x.tr.x : x.tr.j != null || x.tr.st === 'forming' ? n - 1 : x.f.swings[x.f.swings.length - 1].i, pad = Math.max(10, Math.round((i1 - i0) * 0.25));
     chart.timeScale().setVisibleLogicalRange({ from: i0 - pad, to: Math.min(i1 + pad, n - 1 + pad) });
@@ -5377,43 +5534,53 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const tr_ = t => tr(t);
   function patList() {
     $('patBtn').setAttribute('aria-pressed', String(pat.on));
-    // the live forms beside the indicator chips, with their match: visible without the side panel
+    const rows = state.rows, n = rows.length, S = pat.stats || {}, pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`;
+    const live = pat.live.map((x, i) => ({ x, i })).sort((a, b) => b.x.f.sim - a.x.f.sim), shown = live.filter(o => patVisible(o.x)), weakN = live.length - live.filter(o => pct(o.x.f.sim) >= 70).length;
+    const badge = sim => { const [k, t] = patGrade(sim); return `<span class="gr ${k}">${t} ${Math.round(sim * 100)}%</span>`; };
+    // chips beside the indicator chips: the forms that pass the grade
     $('patChips').hidden = !pat.on;
-    $('patChips').innerHTML = !pat.on ? '' : pat.live.length ? pat.live.map((x, i) => `<button type="button" class="pchip" data-pi="${i}" title="Bấm để xem mô hình trên biểu đồ">`
-      + `<b>${esc(PAT_NAME[x.f.id])}</b> khớp ${Math.round(x.f.sim * 100)}% <span class="k">· ${esc(x.lab)} · ${x.tr.st === 'forming' ? 'đang hình thành' : (x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống')}</span></button>`).join('')
-      : '<span class="pchip k" style="cursor:default">Không có mô hình nào đang hình thành</span>';
+    // one line each: a dot for the grade (filled = good, ring = medium), the name and the match; the rest on hover
+    $('patChips').innerHTML = !pat.on ? '' : '<span class="plab">Mô hình</span>' + (shown.length ? shown.map(({ x, i }) => `<button type="button" class="pchip" data-pi="${i}" aria-pressed="${!pat.extra && !patPicked() && patFocus() === x}" `
+      + `title="${esc(tr(`${patGrade(x.f.sim)[1]} ${Math.round(x.f.sim * 100)}% · ${x.lab} · ${x.tr.st === 'forming' ? 'đang hình thành' : (x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống')}`))}">`
+      + `<span class="pdot ${patGrade(x.f.sim)[0]}"></span><b>${esc(PAT_NAME[x.f.id])}</b><span class="k">${Math.round(x.f.sim * 100)}%</span></button>`).join('')
+      : '<span class="k" style="font-size:12px">không có mô hình khớp tốt</span>');
     if ($('dock').hidden) return;
-    if (!pat.on) { $('patBody').innerHTML = '<span class="k">Bật nút Mô hình để tìm mô hình giá trên biểu đồ.</span>'; return; }
-    const rows = state.rows, done = { target: ' · đã đạt mục tiêu', stop: ' · đã chạm cắt lỗ', time: ' · hết thời hạn' };
-    const st = x => x.tr.st === 'forming' ? 'đang hình thành' : `${x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[x.tr.j].t)}${done[x.tr.st] || ''}`;
-    const now = pat.live.length ? pat.live.map((x, i) => `<div class="patrow" data-pi="${i}"><b>${esc(PAT_NAME[x.f.id])}</b> ${Math.round(x.f.sim * 100)}% <span class="k">${esc(x.lab)}, ${x.f.swings[x.f.swings.length - 1].i - x.f.swings[0].i} nến</span>`
-      + `<div class="st">${esc(st(x))}${x.tr.j != null ? ` · Mục tiêu ${fmtP(x.tr.target)} · Cắt lỗ ${fmtP(x.tr.stop)}` : ''}</div></div>`).join('')
-      : '<span class="k">Không có mô hình nào đang hình thành ở ba khung sóng.</span>';
-    const S = pat.stats || {}, ids = Object.keys(S).sort((a, b) => S[b].n - S[a].n), p = patPicked(), pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`;
-    const tab = ids.length ? `<table class="pattab"><tr><th>Mô hình</th><th title="Số lần phá vỡ trong giai đoạn trên">Lần</th><th title="Giá chạm mục tiêu trước khi chạm cắt lỗ">Đạt MT</th><th title="Giá chạm cắt lỗ trước">Chạm CL</th><th title="Lãi/lỗ trung bình mỗi lần, đến khi thoát">LN TB</th></tr>`
-      + ids.map(id => { const s = S[id]; return `<tr data-pid="${id}"${p && pat.pick.id === id ? ' class="on"' : ''}><td>${esc(PAT_NAME[id])}</td><td>${s.n}</td><td>${Math.round(s.tgt / s.n * 100)}%</td><td>${Math.round(s.stop / s.n * 100)}%</td><td>${pc(s.ret / s.n)}</td></tr>`; }).join('') + '</table>'
-      : '<span class="k">Chưa đủ lịch sử.</span>';
-    const out = { target: 'đạt mục tiêu', stop: 'chạm cắt lỗ', time: 'hết thời hạn' };
-    const pick = p ? `<div class="patpick"><button type="button" data-act="prev" aria-label="Lần trước">‹</button><span><b>${esc(PAT_NAME[p.f.id])}</b> ${pat.pick.i + 1}/${S[pat.pick.id].ev.length} · ${Math.round(p.f.sim * 100)}% · ${esc(p.lab)} · `
-      + `${p.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[p.tr.j].t)} → ${out[p.tr.st] || ''} ${fmtDate(rows[p.tr.x].t)}, ${pc(p.tr.ret)}</span>`
-      + `<button type="button" data-act="next" aria-label="Lần sau">›</button><button type="button" data-act="close" aria-label="Bỏ chọn">×</button></div>` : '';
-    const n = rows.length, span = n ? ` · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}, ${n} nến` : '';
-    // timeline over the chosen period, else the whole history
+    if (!pat.on) { const m = '<span class="k">Bật nút Mô hình để tìm mô hình giá trên biểu đồ.</span>'; $('patBody').innerHTML = $('patTl').innerHTML = $('patRec').innerHTML = m; return; }
+    const done = { target: ' · đã đạt mục tiêu', stop: ' · đã chạm cắt lỗ', time: ' · hết thời hạn' };
+    // 1. forming now: graded, with the levels from here and this stock's record for the same form
+    const levels = x => x.tr.st === 'forming' ? patProject(x.f, n).map(q => `${q.dir > 0 ? 'Phá vỡ lên trên' : 'Phá vỡ xuống dưới'} ${fmtP(q.trig)} → Mục tiêu ${fmtP(q.target)} · Cắt lỗ ${fmtP(q.stop)}`).join('<br>')
+      : `${x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[x.tr.j].t)}${done[x.tr.st] || ''} · Mục tiêu ${fmtP(x.tr.target)} · Cắt lỗ ${fmtP(x.tr.stop)}`;
+    const rec = id => { const r = S[id], [k, v] = patVerdict(r);
+      return r ? `Mã này: ${r.n} lần, tới mục tiêu ${Math.round(r.tgt / r.n * 100)}%, dính cắt lỗ ${Math.round(r.stop / r.n * 100)}% · <span class="vd ${k}">${v}</span>` : `Mã này: <span class="vd">${v}</span>`; };
+    $('patBody').innerHTML = `<div class="pathelp k" style="margin:0 0 4px">Khớp tốt ≥ 80% · khớp vừa 70–80% · khớp yếu &lt; 70% (ẩn). Bấm để xem trên biểu đồ.</div>`
+      + (shown.length ? shown.map(({ x, i }) => `<div class="patrow${!pat.extra && !patPicked() && patFocus() === x ? ' on' : ''}" data-pi="${i}"><b>${esc(PAT_NAME[x.f.id])}</b> ${badge(x.f.sim)} <span class="k">${esc(x.lab)}, ${x.f.swings[x.f.swings.length - 1].i - x.f.swings[0].i} nến</span>`
+        + `<div class="st">${levels(x)}</div><div class="st">${rec(x.f.id)}</div></div>`).join('') : '<span class="k">Không có mô hình khớp tốt hoặc vừa đang hình thành.</span>')
+      + (weakN ? `<button type="button" class="linkbtn" data-act="weak">${pat.weak ? 'Ẩn' : 'Hiện'} ${weakN} mô hình khớp yếu</button>` : '');
+    // 2. timeline, newest first: the chosen period, else the whole history
     const pr = patPeriod(), v0 = pr ? pr[0] : 0, v1 = pr ? pr[1] : n - 1;
     const dm = t => typeof t === 'string' ? fmtDate(t).slice(3) : fmtDate(t).slice(0, 8), gapMin = 10;
     const segs = (pat.tl || []).filter(c => c.b >= v0 && c.a <= v1), tl = []; let at = v0;
     for (const c of segs) {
       if (c.a - at > gapMin) tl.push(`<div class="tlrow gap"><span>${dm(rows[at].t)}–${dm(rows[c.a].t)}</span><span class="k">không có mô hình rõ</span></div>`);
       const ti = pat.tl.indexOf(c), res = c.tr.j != null ? `${c.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${dm(rows[c.tr.j].t)}` : c.tr.st === 'void' ? 'thất bại' : c.tr.st === 'forming' ? 'đang hình thành' : 'không phá vỡ';
-      tl.push(`<div class="tlrow${pat.extra === c ? ' on' : ''}" data-ti="${ti}"><span>${dm(rows[c.a].t)}–${dm(rows[c.b].t)}</span><span><b>${esc(PAT_NAME[c.f.id])}</b> ${Math.round(c.f.sim * 100)}%`
+      tl.push(`<div class="tlrow${pat.extra === c ? ' on' : ''}" data-ti="${ti}"><span>${dm(rows[c.a].t)}–${dm(rows[c.b].t)}</span><span><b>${esc(PAT_NAME[c.f.id])}</b> ${badge(c.f.sim)}`
         + ` <span class="k">${esc(c.lab)} · ${esc(res)}</span></span></div>`);
       at = Math.max(at, c.b);
     }
     if (n && v1 - at > gapMin) tl.push(`<div class="tlrow gap"><span>${dm(rows[at].t)}–${dm(rows[v1].t)}</span><span class="k">không có mô hình rõ</span></div>`);
-    const tlHtml = n ? `<h3 style="margin-top:8px">Dòng thời gian <span class="k">${dm(rows[v0].t)}–${dm(rows[v1].t)}${pr ? '' : ' · toàn bộ lịch sử'}</span></h3>` + tl.join('') : '';
-    $('patBody').innerHTML = now + tlHtml + `<h3 style="margin-top:8px">Lịch sử mã này <span class="k">${esc(TF_LABEL[state.tf])}${span}</span></h3>` + tab + pick
-      + (ids.length ? `<div class="pathelp k">Bấm một dòng để vẽ từng lần lên biểu đồ (‹ › để xem lần khác). Độ khớp: đỉnh, đáy nằm sát hình mẫu, phần giá nằm trong hình và (với mô hình đường) số lần chạm đường. Chọn giai đoạn ở trên (ngày hoặc hai điểm trên biểu đồ) để xem mô hình khớp nhất, tỷ lệ đạt và mục tiêu, cắt lỗ; để trống là toàn bộ lịch sử. Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). `
-        + `Mục tiêu = chiều cao mô hình tính từ điểm phá vỡ; cắt lỗ = cạnh đối diện hoặc đỉnh, đáy của mô hình; chưa tính phí. Đổi khung nến (D, W, M) để xem giai đoạn khác.</div>` : '');
+    $('patTl').innerHTML = n ? `<div class="pathelp k" style="margin:0 0 4px">${dm(rows[v0].t)}–${dm(rows[v1].t)}${pr ? '' : ' · toàn bộ lịch sử'} · mới nhất ở trên · mỗi đoạn là mô hình mô tả rõ nhất đoạn giá đó. Chọn giai đoạn ở bảng "Mô hình theo giai đoạn" để thu hẹp.</div>` + tl.reverse().join('') : '';
+    // 3. this stock's record, in words
+    const ids = Object.keys(S).sort((a, b) => S[b].n - S[a].n), p = patPicked(), out = { target: 'đạt mục tiêu', stop: 'chạm cắt lỗ', time: 'hết thời hạn' };
+    const span = n ? `${TF_LABEL[state.tf]} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}` : '';
+    const tab = ids.length ? `<table class="pattab"><tr><th>Mô hình</th><th title="Số lần mô hình phá vỡ">Số lần</th><th title="Giá tới mục tiêu trước khi chạm cắt lỗ">Tới MT</th><th title="Giá chạm cắt lỗ trước">Dính CL</th><th title="Lãi/lỗ trung bình mỗi lần, đến khi thoát">Lãi TB</th><th>Đánh giá</th></tr>`
+      + ids.map(id => { const r = S[id], [k, v] = patVerdict(r); return `<tr data-pid="${id}"${p && pat.pick.id === id ? ' class="on"' : ''}><td>${esc(PAT_NAME[id])}</td><td>${r.n}</td><td>${Math.round(r.tgt / r.n * 100)}%</td><td>${Math.round(r.stop / r.n * 100)}%</td><td>${pc(r.ret / r.n)}</td><td class="vd ${k}">${v}</td></tr>`; }).join('') + '</table>'
+      : '<span class="k">Chưa đủ lịch sử.</span>';
+    const pick = p ? `<div class="patpick"><button type="button" data-act="prev" aria-label="Lần trước">‹</button><span><b>${esc(PAT_NAME[p.f.id])}</b> ${pat.pick.i + 1}/${S[pat.pick.id].ev.length} · ${badge(p.f.sim)} · ${esc(p.lab)} · `
+      + `${p.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[p.tr.j].t)} → ${out[p.tr.st] || ''} ${fmtDate(rows[p.tr.x].t)}, ${pc(p.tr.ret)}</span>`
+      + `<button type="button" data-act="next" aria-label="Lần sau">›</button><button type="button" data-act="close" aria-label="Bỏ chọn">×</button></div>` : '';
+    $('patRec').innerHTML = `<div class="pathelp k" style="margin:0 0 4px">${esc(state.sym)} · ${esc(span)}. Mỗi dòng: những lần mô hình đó phá vỡ trong lịch sử mã này, giá tới mục tiêu trước hay dính cắt lỗ trước, và lãi/lỗ trung bình mỗi lần. "Hiệu quả" = tới mục tiêu nhiều hơn dính cắt lỗ và lãi trung bình dương, từ 8 lần trở lên. Bấm một dòng để xem từng lần trên biểu đồ.</div>`
+      + tab + pick + (ids.length ? `<details class="pathelp k"><summary>Cách tính</summary>Độ khớp: đỉnh, đáy nằm sát hình mẫu, phần giá nằm trong hình và (với mô hình đường) số lần chạm đường. Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). `
+        + `Mục tiêu = chiều cao mô hình tính từ điểm phá vỡ; cắt lỗ = cạnh đối diện hoặc đỉnh, đáy của mô hình; chưa tính phí. Đổi khung nến (D, W, M) để xem giai đoạn khác.</details>` : '');
   }
   for (const id of ['prFrom', 'prTo']) $(id).addEventListener('change', () => { patPeriodRun(); patList(); });
   $('prClear').addEventListener('click', () => { $('prFrom').value = $('prTo').value = ''; pat.extra = null; patPeriodRun(); patShow(); patList(); });
@@ -5427,7 +5594,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   });
   $('prOut').addEventListener('click', e => { const r = e.target.closest('[data-pr]'); if (!r) return; const c = pat.prRes[+r.dataset.pr];
     pat.pick = null; pat.extra = c; patShow(); patPeriodList(); patList(); patZoom(c); });
-  $('patChips').addEventListener('click', e => { const r = e.target.closest('[data-pi]'); if (r && pat.live[+r.dataset.pi]) patZoom(pat.live[+r.dataset.pi]); });
+  $('patChips').addEventListener('click', e => { const r = e.target.closest('[data-pi]'), x = r && pat.live[+r.dataset.pi]; if (!x) return;
+    pat.focus = patKey(x); pat.extra = null; pat.pick = null; patShow(); patList(); patZoom(x); });
   function patReveal() {   // Patterns on: the panel open at its pattern section, unfolded
     if (EMBED != null) return; if ($('dock').hidden) setDock(true);
     const sec = document.querySelector('#dock > section[data-w="pat"]'); if (!sec) return;
@@ -5436,9 +5604,10 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     sec.scrollIntoView({ block: 'nearest' });
   }
   $('patBtn').addEventListener('click', () => { if (!pat.on) setTimeout(patReveal); pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; pat.pick = null; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
-  $('patBody').addEventListener('click', e => {   // a live pattern: bring it into view; a row of the record: draw its breakouts one at a time
+  for (const id of ['patBody', 'patTl', 'patRec']) $(id).addEventListener('click', e => {   // a live pattern: bring it into view; a row of the record: draw its breakouts one at a time
     const r = e.target.closest('[data-pi]'), t = e.target.closest('[data-pid]'), b = e.target.closest('[data-act]');
-    if (r) { const x = pat.live[+r.dataset.pi]; if (x) patZoom(x); return; }
+    if (b && b.dataset.act === 'weak') { pat.weak = !pat.weak; safeSet('pt-ta-patweak', pat.weak ? '1' : '0'); patShow(); patList(); return; }
+    if (r) { const x = pat.live[+r.dataset.pi]; if (x) { pat.focus = patKey(x); pat.extra = null; pat.pick = null; patShow(); patList(); patZoom(x); } return; }
     const tl = e.target.closest('[data-ti]');
     if (tl) { const c = pat.tl[+tl.dataset.ti]; pat.pick = null; pat.extra = pat.extra === c ? null : c; patShow(); patList(); if (pat.extra) patZoom(c); return; }
     if (t) { pat.extra = null; const ev = pat.stats[t.dataset.pid].ev; pat.pick = { id: t.dataset.pid, i: ev.length - 1 }; }   // the latest first
@@ -5533,6 +5702,25 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('cmdkList').addEventListener('click', e => { const it = e.target.closest('[data-i]'); if (it) cmdRun(+it.dataset.i); });
   $('cmdk').addEventListener('click', e => { if (e.target === $('cmdk')) $('cmdk').close(); });
   $('cmdBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); cmdOpen(); });
+  // Named indicator sets and chart layouts, kept in this browser (pt-ta-tpl)
+  const tplGet = () => { try { const t = JSON.parse(safeGet('pt-ta-tpl') || '{}'); return { inds: t.inds || {}, lays: t.lays || {} }; } catch (e) { return { inds: {}, lays: {} }; } };
+  function tplRender() {
+    const T = tplGet(), list = (o, kind) => Object.keys(o).length ? Object.keys(o).sort().map(k => `<div class="objrow" data-tk="${kind}" data-tn="${esc(k)}"><span>${esc(k)}${kind === 'lays' ? ` <span class="k">${esc(o[k].sym)} · ${esc(TF_LABEL[o[k].tf] || o[k].tf)}</span>` : ` <span class="k">${o[k].length} chỉ báo</span>`}</span>`
+      + `<button type="button" data-ta="use">${tr('Dùng')}</button><button type="button" data-ta="del" title="${tr('Xóa')}">×</button></div>`).join('') : `<span class="k">${tr('Chưa có.')}</span>`;
+    $('tplInds').innerHTML = list(T.inds, 'inds'); $('tplLays').innerHTML = list(T.lays, 'lays');
+  }
+  $('tplBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); tplRender(); $('tplDlg').showModal(); });
+  $('tplIndSave').addEventListener('click', () => { const n = $('tplIndName').value.trim(); if (!n) return; const T = tplGet(); T.inds[n] = snapshot(); safeSet('pt-ta-tpl', JSON.stringify(T)); $('tplIndName').value = ''; tplRender(); });
+  $('tplLaySave').addEventListener('click', () => { const n = $('tplLayName').value.trim(); if (!n) return; const T = tplGet();
+    T.lays[n] = { sym: state.sym, tf: state.tf, style: state.style, scale: state.scale, inds: snapshot() }; safeSet('pt-ta-tpl', JSON.stringify(T)); $('tplLayName').value = ''; tplRender(); });
+  $('tplDlg').addEventListener('click', e => {
+    const b = e.target.closest('[data-ta]'), r = b && b.closest('[data-tk]'); if (!r) return; const T = tplGet(), kind = r.dataset.tk, name = r.dataset.tn, v = T[kind][name]; if (!v) return;
+    if (b.dataset.ta === 'del') { delete T[kind][name]; safeSet('pt-ta-tpl', JSON.stringify(T)); tplRender(); return; }
+    if (kind === 'inds') { state.inds = revive(v); state.editing = null; renderEditor(); changed(); $('tplDlg').close(); return; }
+    // a layout: its settings into storage, then open its symbol and interval (a reload keeps every part consistent)
+    safeSet('pt-ta-inds-v5', JSON.stringify(v.inds)); safeSet('pt-ta-style', v.style); safeSet('pt-ta-scale', v.scale);
+    const u = new URL(location.href); u.searchParams.set('symbol', v.sym); u.searchParams.set('interval', v.tf); location.href = u.href;
+  });
   $('keysBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); $('keysDlg').showModal(); });
   document.addEventListener('keydown', e => {
     const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
