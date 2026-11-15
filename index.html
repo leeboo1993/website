@@ -87,6 +87,15 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .ichip:hover .mini, .ichip:focus-within .mini, .ichip.editing .mini, .ichip .mini[data-act="hi"][aria-pressed="true"], .ichip .mini[data-act="toggle"][aria-pressed="false"] { display: inline-grid; }
 .ichip { flex: none; }
 @media (max-width: 720px) { .chartrow { grid-template-columns: 1fr; } .rail { flex-direction: row; flex-wrap: wrap; } .rail .rsep { width: 1px; height: 20px; margin-inline: 3px; } }
+.alertbox { width: min(380px, calc(100vw - 32px)); gap: 6px; }
+.alertbox .arow { display: flex; gap: 6px; } .alertbox .arow > * { flex: 1; min-width: 0; }
+.alertbox #alList { display: flex; flex-direction: column; gap: 2px; max-height: 40vh; overflow-y: auto; border-top: 1px solid var(--line); padding-top: 6px; }
+.aitem { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; font-size: 12px; padding: 3px 0; }
+.aitem.off { color: var(--muted); } .aitem .k, .alertbox .k, .anote { color: var(--muted); font-size: 11px; }
+.aitem button { margin-left: auto; padding: 0 6px; border-color: transparent; background: transparent; }
+.aitem b { cursor: pointer; } .anote { margin: 2px 0 0; }
+#toasts { position: fixed; top: 12px; right: 12px; z-index: 60; display: flex; flex-direction: column; gap: 6px; max-width: min(360px, calc(100vw - 24px)); }
+#toasts .toast { background: var(--navy); color: var(--white); border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
 /* Phone: the chart gets the screen. Step numbers, separators and the subtitle go; the drawing rail becomes one row
    whose flyouts open below it at full width; the toolbar wraps tight. */
 @media (max-width: 720px) {
@@ -96,6 +105,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
   .rail { position: relative; } #railGroups { display: flex; flex-wrap: wrap; gap: 2px; } .rail .rgroup { position: static; }
   .rail .flyout { left: 0; right: 0; top: 100%; min-width: 0; max-height: 60vh; }
   #chart { height: max(420px, calc(100svh - 130px)); }
+  .bar { position: relative; } #alertMenu { position: static; } .alertbox { left: 0; right: 0; width: auto; }
 }
 .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .group .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 4px; }
@@ -292,6 +302,15 @@ tbody tr[data-i]:hover { background: var(--panel); }
     </div>
     <button type="button" id="cleanBtn" aria-pressed="false" title="Gọn: bỏ lưới, chỉ giữ nhãn giá và nhãn chỉ báo được nhấn mạnh, mũi tên đột biến không kèm số">Gọn</button>
     <span class="bsep" aria-hidden="true"></span>
+    <details class="more" id="alertMenu"><summary id="alertSum" title="Cảnh báo khi giá hoặc chỉ báo cắt một mức">Cảnh báo</summary><div class="menu alertbox">
+      <div class="arow"><select id="alA" aria-label="Vế trái"></select><select id="alOp" aria-label="Điều kiện"><option value="up">cắt lên</option><option value="dn">cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select></div>
+      <div class="arow"><select id="alB" aria-label="Vế phải"></select><input id="alNum" type="number" step="any" aria-label="Mức"></div>
+      <button type="button" class="primary" id="alAdd">Thêm cảnh báo</button>
+      <button type="button" id="alPerm" hidden>Bật thông báo trên máy tính</button>
+      <div id="alList"></div>
+      <p class="anote">Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. Mỗi cảnh báo báo một lần.</p>
+    </div></details>
+    <span class="bsep" aria-hidden="true"></span>
     <span class="bn" title="Bước 6: xuất">6</span>
     <button type="button" class="primary" id="pngBtn">Xuất PNG</button>
   </div>
@@ -320,6 +339,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     </div>
     <div id="editor" hidden></div>
   </div>
+  <div id="toasts" aria-live="polite"></div>
   <div class="chartrow">
     <div class="rail" id="drawGroup" role="toolbar" aria-label="Vẽ" title="Kéo hình để di chuyển · kéo chấm tròn để chỉnh · phím mũi tên để nhích · ngôi sao trên chỉ báo để nhấn mạnh">
       <span class="bn" title="Bước 4: vẽ và nhấn mạnh">4</span>
@@ -963,7 +983,25 @@ nến => candles
 Ngôn ngữ => Language
 Kênh => Channel
 tấn => tonne
-Xong => Done`.split('\n').map(l => l.split(' => ')));
+Xong => Done
+Cảnh báo khi giá hoặc chỉ báo cắt một mức => Alert when the price or an indicator crosses a level
+Cảnh báo giá => Price alert
+Cảnh báo => Alerts
+Vế trái => Left side
+Vế phải => Right side
+Điều kiện => Condition
+cắt lên => crosses above
+cắt xuống => crosses below
+ở trên => is above
+ở dưới => is below
+Mức… => Level…
+Thêm cảnh báo => Add alert
+Bật thông báo trên máy tính => Turn on desktop notifications
+Xóa cảnh báo => Delete alert
+đang chờ => waiting
+đã báo => fired
+Chưa có cảnh báo. => No alerts yet.
+Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. Mỗi cảnh báo báo một lần. => Alerts are kept in this browser and fire only while the page is open. Each alert fires once.`.split('\n').map(l => l.split(' => ')));
   const TR_RE = EN ? new RegExp([...VI2EN.keys()].sort((a, b) => b.length - a.length).map(k =>
     (/[\p{L}\p{N}]/u.test(k[0]) ? '(?<![\\p{L}\\p{N}])' : '') + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + (/[\p{L}\p{N}]/u.test(k[k.length - 1]) ? '(?![\\p{L}\\p{N}])' : '')).join('|'), 'gu') : null;
   const tr = s => EN && typeof s === 'string' && s ? s.replace(TR_RE, m => VI2EN.get(m)) : s;
@@ -2329,7 +2367,7 @@ Xong => Done`.split('\n').map(l => l.split(' => ')));
     if (state.bench !== 'VNINDEX') u.searchParams.set('vs', state.bench); else u.searchParams.delete('vs');
     try { history.replaceState(null, '', u.href.replace('%3A', ':')); } catch (e) { /* some file:// setups refuse */ }
   }
-  if (/[?&]debug\b/.test(location.search)) window.PTTA = { state, IND, tr };   // console access for checking indicators
+  if (/[?&]debug\b/.test(location.search)) window.PTTA = { state, IND, tr, get alerts() { return alerts; }, liveTick: f => liveTick(f), checkAlerts: () => checkAlerts() };   // console access for checking indicators
 
   // ---------- chart ----------
   const chart = LWC.createChart($('chart'), {
@@ -3993,7 +4031,7 @@ Xong => Done`.split('\n').map(l => l.split(' => ')));
       if (GLOBAL.has(sym) && isIntra()) { state.tf = 'D'; markTf(); }
       if (isIntra()) { await loadIntra(state.tf, true); if (req !== state.reqId) return; }
       hideOverlay(); applyTf(false);
-      setStatus('ok', statusLine()); syncURL();
+      setStatus('ok', statusLine()); syncURL(); alertLines(); checkAlerts();
       safeSet('pt-ta-sym', sym + (GLOBAL.has(sym) && !isCrypto(sym) ? '|w' : ''));   // crypto needs no catalogue: it loads at once   // reopened (or after a language switch) on the same symbol
     } catch (err) {
       if (req !== state.reqId) return;
@@ -4095,6 +4133,156 @@ Xong => Done`.split('\n').map(l => l.split(' => ')));
       setTimeout(() => { if ($('statusText').textContent.startsWith(tr('Đã xuất'))) setStatus('ok', prev); }, 4000);
     }, 'image/png');
   });
+
+  // ---------- live updates ----------
+  // In the VN session (Mon-Fri 9:00-11:30 and 13:00-15:00, Vietnam time, a few minutes' margin) the page re-reads the
+  // last bars of the symbol on screen every 15 s and redraws only when one changed; crypto around the clock. World
+  // series are daily and wait for a reload. A chart scrolled to its right edge follows the new bar.
+  const vnOpen = () => { const d = new Date(Date.now() + VN_OFFSET * 1000), wd = d.getUTCDay(), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+    return wd > 0 && wd < 6 && (m >= 535 && m <= 692 || m >= 780 && m <= 905); };
+  function mergeBars(cur, fresh) {   // replace a changed bar, append a newer one; true if anything moved
+    let changed = false; const base = Math.max(0, cur.length - 400), at = new Map(cur.slice(base).map((b, i) => [b.t, base + i]));
+    for (const b of fresh) { const i = at.get(b.t);
+      if (i != null) { const a = cur[i]; if (a.c !== b.c || a.h !== b.h || a.l !== b.l || a.v !== b.v) { cur[i] = b; changed = true; } }
+      else if (!cur.length || b.t > cur[cur.length - 1].t) { cur.push(b); changed = true; } }
+    return changed;
+  }
+  async function lastBars(sym, res) {   // the latest bars of a symbol, in the page's row format
+    if (isCrypto(sym)) { const k = await getJSON(`${BINANCE}?symbol=${encodeURIComponent(sym)}&interval=1d&limit=2`, 1);
+      return k.map(r => ({ t: dayStr(r[0] / 1000), o: +r[1], h: +r[2], l: +r[3], c: +r[4], v: +r[5] })); }
+    const now = Math.floor(Date.now() / 1000), bars = await vndFetch(sym, res, now - (res === 'D' ? 6 : 4) * 86400, nowSec());
+    return bars.map(b => Object.assign(b, { t: res === 'D' ? dayStr(b.t) : b.t + VN_OFFSET }));
+  }
+  let liveBusy = false;
+  async function liveTick(force) {
+    const sym = state.sym, tf = state.tf, req = state.reqId;
+    if (liveBusy || state.busy || state.source !== 'vnd' || !state.rows.length) return;
+    if (!isCrypto(sym) && (GLOBAL.has(sym) || !force && !vnOpen())) return;
+    liveBusy = true;
+    try {
+      const res = isIntra() ? tf : 'D', fresh = await lastBars(sym, res);
+      if (req !== state.reqId || tf !== state.tf) return;
+      if (!mergeBars(res === 'D' ? state.daily : (state.intra[res] = state.intra[res] || []), fresh)) return;
+      const ts = chart.timeScale(), lr = ts.getVisibleLogicalRange(), atEdge = lr && lr.to >= state.rows.length - 2;
+      applyTf(true); if (atEdge) ts.scrollToRealTime();
+      const hm = new Date().toLocaleTimeString('en-GB');
+      setStatus('ok', `${statusLine()} · ${EN ? 'live' : 'trực tiếp'} ${hm}`);
+      checkAlerts();
+    } catch (e) { /* a missed tick is retried by the next one */ }
+    finally { liveBusy = false; }
+  }
+  setInterval(liveTick, 15000);
+
+  // ---------- alerts ----------
+  // "A crosses above / below B" or "A is above / below B": A is the price or a line of an indicator on screen, B a
+  // number, the price or a line. Kept in this browser. Checked on every live update of the symbol on screen; price
+  // alerts on other symbols are checked every minute. Each fires once: a beep, a desktop notification, a note on the
+  // page, and a bell in the tab title while the tab is in the background. An alert on an indicator line belongs to
+  // the candle size it was set on, as the line's values depend on it.
+  const ALERT_KEY = 'pt-ta-alerts', TITLE = document.title, AL_OPS = { up: 'cắt lên', dn: 'cắt xuống', gt: 'ở trên', lt: 'ở dưới' };
+  let alerts = []; try { alerts = JSON.parse(safeGet(ALERT_KEY) || '[]'); } catch (e) { alerts = []; }
+  const lastVal = a => { for (let i = a.length - 1; i >= Math.max(0, a.length - 3); i--) if (a[i] != null && isFinite(a[i])) return a[i]; return null; };
+  function lineOpts() {   // every line of an indicator on screen: key, label, latest value
+    const opts = [];
+    for (const o of state.out) if (o.inst.on) o.out.forEach((x, j) => {
+      if (!Array.isArray(x.values)) return;
+      const n = o.inst.name || o.d.label(o.p);
+      opts.push({ key: `${o.inst.uid}|${j}`, label: tr(o.out.length > 1 && x.name && x.name !== n ? `${n} · ${x.name}` : n), values: x.values });
+    });
+    return opts;
+  }
+  function sideVal(s) {
+    if (typeof s === 'number') return s;
+    if (s === 'close') return state.rows.length ? state.rows[state.rows.length - 1].c : null;
+    const l = lineOpts().find(x => x.key === s); return l ? lastVal(l.values) : null;
+  }
+  const sideLabel = (s, al) => typeof s === 'number' ? fmtP(s) : s === 'close' ? 'Giá' : (al.labels || {})[s] || s;
+  const alertText = al => `${sideLabel(al.a, al)} ${AL_OPS[al.op]} ${sideLabel(al.b, al)}`;
+  function judge(al, d) {   // d = A - B now; al.prev = A - B at the last check
+    const p = al.prev; al.prev = d;
+    return al.op === 'gt' ? d > 0 : al.op === 'lt' ? d < 0 : p == null ? false : al.op === 'up' ? p < 0 && d >= 0 : p > 0 && d <= 0;
+  }
+  let actx = null;   // browsers start sound only after a click on the page
+  addEventListener('pointerdown', () => { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (e) { /* no sound */ } });
+  function beep() {
+    if (!actx) return;
+    try { const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime; o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6); o.start(t); o.stop(t + 0.62); } catch (e) { /* no sound */ }
+  }
+  function toast(msg) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; d.onclick = () => d.remove(); $('toasts').append(d); setTimeout(() => d.remove(), 20000); }
+  function fire(al, v) {
+    al.on = false; al.fired = Date.now();
+    const msg = tr(`${al.sym}${al.tf ? ' ' + TF_LABEL[al.tf] : ''}: ${alertText(al)} (${fmtP(v)})`);
+    beep(); toast('🔔 ' + msg);
+    try { if ('Notification' in window && Notification.permission === 'granted') new Notification(tr('Cảnh báo giá'), { body: msg, tag: al.id }); } catch (e) { /* phones without a service worker */ }
+    if (document.hidden) document.title = '🔔 ' + msg;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = TITLE; });
+  function saveAlerts() { safeSet(ALERT_KEY, JSON.stringify(alerts.slice(-200))); renderAlerts(); alertLines(); }
+  function checkAlerts() {
+    if (state.source !== 'vnd') return;
+    let seen = false;
+    for (const al of alerts) if (al.on && al.sym === state.sym && (!al.tf || al.tf === state.tf)) {
+      const a = sideVal(al.a), b = sideVal(al.b); if (a == null || b == null) continue;
+      seen = true; if (judge(al, a - b)) fire(al, a);
+    }
+    if (seen) saveAlerts();
+  }
+  async function watchOthers() {   // price alerts on symbols not on screen
+    const syms = [...new Set(alerts.filter(al => al.on && !al.tf && al.sym !== state.sym).map(al => al.sym))]
+      .filter(sym => isCrypto(sym) || !GLOBAL.has(sym) && vnOpen());
+    for (const sym of syms) {
+      try { const bars = await lastBars(sym, 'D'), c = bars.length ? bars[bars.length - 1].c : null; if (c == null) continue;
+        for (const al of alerts) if (al.on && !al.tf && al.sym === sym && judge(al, c - al.b)) fire(al, c); } catch (e) { /* next minute */ }
+    }
+    if (syms.length) saveAlerts();
+  }
+  setInterval(watchOthers, 60000);
+  let aLines = [];
+  function alertLines() {   // price alerts of the symbol on screen, as dashed coral lines
+    for (const l of aLines) candle.removePriceLine(l); aLines = [];
+    for (const al of alerts) if (al.on && al.sym === state.sym && al.a === 'close' && typeof al.b === 'number')
+      aLines.push(candle.createPriceLine({ price: al.b, color: C.coral, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '🔔' }));
+  }
+  function renderAlerts() {
+    const n = alerts.filter(a => a.on).length;
+    $('alertSum').textContent = n ? `Cảnh báo (${n})` : 'Cảnh báo';
+    $('alPerm').hidden = !('Notification' in window) || Notification.permission !== 'default';
+    const when = t => new Date(t).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    $('alList').innerHTML = alerts.length ? alerts.slice().reverse().map(al => `<div class="aitem${al.on ? '' : ' off'}"><b data-sym="${esc(al.sym)}">${esc(al.sym)}</b>`
+      + `${al.tf ? `<span class="k">${esc(TF_LABEL[al.tf])}</span>` : ''}<span>${esc(alertText(al))}</span>`
+      + `<span class="k">${al.on ? 'đang chờ' : 'đã báo ' + when(al.fired)}</span>`
+      + `<button type="button" data-al="${esc(al.id)}" title="Xóa cảnh báo" aria-label="Xóa cảnh báo">×</button></div>`).join('')
+      : '<span class="k">Chưa có cảnh báo.</span>';
+  }
+  $('alertMenu').addEventListener('toggle', () => {
+    if (!$('alertMenu').open) return;
+    const opt = l => `<option value="${esc(l.key)}">${esc(l.label)}</option>`, L = lineOpts().map(opt).join('');
+    $('alA').innerHTML = `<option value="close">Giá ${esc(state.sym)}</option>` + L;
+    $('alB').innerHTML = '<option value="num">Mức…</option><option value="close">Giá</option>' + L;
+    $('alNum').hidden = false; $('alNum').value = state.rows.length ? state.rows[state.rows.length - 1].c : '';
+    renderAlerts();
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('#alertMenu')) $('alertMenu').removeAttribute('open'); });
+  $('alB').addEventListener('change', () => { $('alNum').hidden = $('alB').value !== 'num'; });
+  $('alAdd').addEventListener('click', () => {
+    const a = $('alA').value, bv = $('alB').value, b = bv === 'num' ? parseFloat($('alNum').value) : bv;
+    if (typeof b === 'number' && !isFinite(b)) { $('alNum').focus(); return; }
+    if (a === b || !state.rows.length || state.source !== 'vnd') return;
+    const labels = {}; for (const l of lineOpts()) if (l.key === a || l.key === b) labels[l.key] = l.label;
+    const al = { id: Date.now().toString(36), sym: state.sym, tf: a === 'close' && (typeof b === 'number' || b === 'close') ? null : state.tf,
+      a, op: $('alOp').value, b, labels, on: true, prev: null, made: Date.now() };
+    const va = sideVal(a), vb = sideVal(b); if (va != null && vb != null) al.prev = va - vb;   // a crossing needs a move after now
+    alerts.push(al); saveAlerts();
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(renderAlerts, () => {});
+  });
+  $('alPerm').addEventListener('click', () => Notification.requestPermission().then(renderAlerts, () => {}));
+  $('alList').addEventListener('click', e => {
+    const id = e.target.dataset.al, sym = e.target.dataset.sym;
+    if (id) { alerts = alerts.filter(a => a.id !== id); saveAlerts(); }
+    else if (sym && sym !== state.sym) { $('alertMenu').removeAttribute('open'); loadSymbol(sym); }
+  });
+  renderAlerts();
 
   // ---------- boot ----------
   markSym(); markTf(); markRange(); markDays(); markScale(false); renderPresets(); renderChips(); markTools(); applyClean();
