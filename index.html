@@ -1324,6 +1324,10 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Vào lệnh => Entry
+Lời/lỗ => Reward/risk
+đóng cửa trên => close above
+đóng cửa dưới => close below
 Nguồn tin => News source
 Việt Nam => Vietnam
 Quốc tế => International
@@ -4115,7 +4119,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (d.type === 'vline') { const sp = spanOf(d, H, HA); out.push({ x1: P[0].x, y1: sp.y1, x2: P[0].x, y2: sp.y2, all: sp.full, label: F(), lx: P[0].x + 4, ly: sp.ly }); }
     if (d.type === 'hline') out.push({ x1: 0, y1: P[0].y, x2: W, y2: P[0].y, label: F(), lx: W - 4, ly: P[0].y - 4, end: true });
     if (d.type === 'trend' && P[1]) {
-      out.push({ x1: P[0].x, y1: P[0].y, x2: P[1].x, y2: P[1].y, label: F(), lx: P[1].x + 6, ly: P[1].y - 6 });
+      out.push({ x1: P[0].x, y1: P[0].y, x2: P[1].x, y2: P[1].y, label: F(), ...(d.lab0 ? { lx: Math.min(P[1].x, W) - 4, ly: P[0].y - 4, end: true } : { lx: P[1].x + 6, ly: P[1].y - 6 }) });   // lab0: over the line, right-aligned inside the plot
     }
     if (d.type === 'channel' && P[1]) {
       out.push({ x1: P[0].x, y1: P[0].y, x2: P[1].x, y2: P[1].y });
@@ -5697,7 +5701,14 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   // until another is clicked). Several at once crossed each other into a tangle.
   const patKey = x => `${x.f.id}|${x.k}|${x.f.swings[0].i}`;
   function patFocus() { const vis = pat.live.filter(patVisible).sort((a, b) => b.f.sim - a.f.sim); return vis.find(x => patKey(x) === pat.focus) || vis[0] || null; }
-  function patShow() { const p = pat.extra || patPicked() || patFocus(); pat.shown = p ? patShapes(p) : []; pat.ver++; }
+  function patShow() { const p = pat.extra || patPicked() || patFocus(); pat.shown = p ? patShapes(p) : []; pat.ver++;
+    // the price scale takes in the shown pattern's entry, target and stop (within 40% of the last price), as TradingView does
+    const last = state.rows.length ? state.rows[state.rows.length - 1].c : 0;
+    pat.levels = pat.shown.filter(d => d.note && /^(Vào lệnh|Mục tiêu|Cắt lỗ|Entry|Target|Stop)/.test(d.note)).map(d => d.pts[0].p).filter(v => last && Math.abs(v / last - 1) < 0.4);
+    try { candle.priceScale().applyOptions({ autoScale: true }); } catch (e) { /* before the first render */ }   // re-fit now, not at the next pan
+  }
+  candle.applyOptions({ autoscaleInfoProvider: orig => { const r = orig(), L = pat.levels || []; if (!r || !r.priceRange || !L.length) return r;
+    return { ...r, priceRange: { minValue: Math.min(r.priceRange.minValue, ...L), maxValue: Math.max(r.priceRange.maxValue, ...L) } }; } });
   function patZoom(x) {   // the form from its first swing to the end of its trade (or today)
     const n = state.rows.length, i0 = x.f.swings[0].i, i1 = x.tr.x != null ? x.tr.x : x.tr.j != null || x.tr.st === 'forming' ? n - 1 : x.f.swings[x.f.swings.length - 1].i, pad = Math.max(10, Math.round((i1 - i0) * 0.25));
     chart.timeScale().setVisibleLogicalRange({ from: i0 - pad, to: Math.min(i1 + pad, n - 1 + pad) });
@@ -5706,21 +5717,26 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const rows = state.rows, n = rows.length, P = (i, p) => ptAt(i, p), sw = f.swings, i0 = sw[0].i, i1 = sw[sw.length - 1].i;
     const end = tr.j != null ? tr.j : Math.min(n - 1 + Math.round((i1 - i0) * 0.3), i1 + (i1 - i0)), out = [];
     const name = `${tr_(PAT_NAME[f.id])} · ${tr_(lab)} · ${Math.round(f.sim * 100)}%`;
-    const seg = (a, b, pa, pb, c, ls, note) => out.push({ type: 'trend', pts: [P(a, pa), P(b, pb)], c, ls, nonum: true, note, w: 1.5 });
+    const seg = (a, b, pa, pb, c, ls, note, lab0) => out.push({ type: 'trend', pts: [P(a, pa), P(b, pb)], c, ls, nonum: true, note, w: 1.5, lab0 });
     if (f.lines) { seg(f.iu, end, f.up(f.iu), f.up(end), 'navy', 'solid', name); seg(f.il, end, f.lo(f.il), f.lo(end), 'navy', 'solid'); }
     else {
       for (let x = 0; x < sw.length - 1; x++) seg(sw[x].i, sw[x + 1].i, sw[x].p, sw[x + 1].p, 'grey', 'solid');
       const nk = sw[1]; seg(nk.i, end, f.neck(nk.i), f.neck(end), 'navy', 'dash', name);
     }
-    if (tr.proj) for (const p of tr.proj) {   // not broken yet: where it triggers, and the target and stop beyond, drawn ahead of today
-      const a = n - 1, b = n - 1 + Math.max(10, Math.round((i1 - i0) / 2)), ar = p.dir > 0 ? '↑' : '↓';
-      seg(a, b, p.target, p.target, 'accent', 'dash', `${tr_('Mục tiêu')} ${ar} ${fmtP(p.target)}`);
-      seg(a, b, p.stop, p.stop, 'grey', 'dash', `${tr_('Cắt lỗ')} ${ar} ${fmtP(p.stop)}`);
-    }
-    if (tr.j != null) {   // after a breakout: target and stop, drawn forward from the breakout bar
-      const a = tr.j, b = Math.max(tr.x != null ? tr.x : 0, tr.j + Math.max(8, Math.round((i1 - i0) / 2)));   // to the exit bar when there is one
-      seg(a, b, tr.target, tr.target, 'accent', 'dash', `${tr_('Mục tiêu')} ${fmtP(tr.target)}`);
-      seg(a, b, tr.stop, tr.stop, 'grey', 'dash', `${tr_('Cắt lỗ')} ${fmtP(tr.stop)}`);
+    // Entry, target and stop on the chart, as a trade ticket: % from the entry on each, reward : risk on the entry.
+    const pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`, rr = (e, t, s) => Math.abs(e - s) ? (Math.abs(t - e) / Math.abs(e - s)).toFixed(1) : '–';
+    const ticket = (a, b, e, t, st, ar, entryNote) => {
+      seg(a, b, e, e, 'navy', 'solid', `${tr_('Vào lệnh')} ${ar} ${fmtP(e)}${entryNote || ''} · ${tr_('Lời/lỗ')} ${rr(e, t, st)}`, true);
+      seg(a, b, t, t, 'accent', 'dash', `${tr_('Mục tiêu')} ${fmtP(t)} (${pc(t, e)})`, true);
+      seg(a, b, st, st, 'grey', 'dash', `${tr_('Cắt lỗ')} ${fmtP(st)} (${pc(st, e)})`, true);
+    };
+    const proj = tr.proj || (tr.st === 'forming' ? patProject(f, n) : null);   // not broken yet: where it triggers, drawn ahead of today
+    // over the last bars, ending just past the last candle, so the labels stay inside the default view
+    if (proj) for (const p of proj) ticket(Math.max(i1, n - 1 - Math.max(25, Math.round((i1 - i0) / 2))), n + 3, p.trig, p.target, p.stop, p.dir > 0 ? '↑' : '↓',
+      ` (${tr_(p.dir > 0 ? 'đóng cửa trên' : 'đóng cửa dưới')})`);
+    if (tr.j != null) {   // after a breakout: the trade from the breakout bar, to the exit bar when there is one
+      const a = tr.j, b = Math.max(tr.x != null ? tr.x : 0, tr.j + Math.max(8, Math.round((i1 - i0) / 2)));
+      ticket(a, b, tr.entry, tr.target, tr.stop, tr.dir > 0 ? '↑' : '↓', ` ${fmtDate(rows[tr.j].t).slice(0, 5)}`);
     }
     return out;
   }
