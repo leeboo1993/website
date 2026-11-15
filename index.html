@@ -155,6 +155,9 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .scrtab td.up { color: var(--good); } .scrtab td.dn { color: var(--bad); }
 .planrow .lv { font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; } .planrow .up { color: var(--good); } .planrow .dn { color: var(--bad); }
 .cf { color: var(--accent); }
+.viewtabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 8px 0 4px; } .viewtabs button { font-size: 12px; }
+#viewBody svg { width: 100%; height: auto; display: block; } #viewBody text { font-family: Helvetica Neue, Helvetica, Arial, sans-serif; }
+.vstats { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; margin: 4px 0; } .vstats b { font-variant-numeric: tabular-nums; }
 .tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .patpick span { flex: 1; }
@@ -403,6 +406,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
         <button type="button" id="fsBtn" title="Toàn màn hình (Shift+F)">Toàn màn hình</button>
         <button type="button" id="cmdBtn" title="Tìm mã, chỉ báo hoặc lệnh (Ctrl+K)">Tìm nhanh</button>
         <button type="button" id="keysBtn" title="Danh sách phím tắt (?)">Phím tắt</button>
+        <button type="button" id="viewBtn" title="Mùa vụ, tự tương quan, phân phối lợi suất, phổ chu kỳ, RRG, điểm và hình (P&amp;F), Equivolume, lợi suất sau tín hiệu">Phân tích thống kê…</button>
         <button type="button" id="scrBtn" title="Lọc cổ phiếu Việt Nam theo giá, thanh khoản, định giá">Bộ lọc cổ phiếu…</button>
         <button type="button" id="tplBtn" title="Lưu và mở bộ chỉ báo, bố cục biểu đồ có tên">Mẫu và bố cục…</button>
         <button type="button" data-sx="pt-ta-ev" aria-pressed="false" title="Cổ tức tiền, cổ tức cổ phiếu, cổ phiếu thưởng và ĐHCĐ trên biểu đồ (VNDirect)">Sự kiện trên biểu đồ</button>
@@ -476,6 +480,14 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <div id="editor" hidden></div>
   </div>
   <dialog id="cmdk" class="cmdk"><input id="cmdkIn" type="search" placeholder="Tìm mã, chỉ báo hoặc lệnh…" aria-label="Tìm mã, chỉ báo hoặc lệnh"><div id="cmdkList" role="listbox"></div></dialog>
+  <dialog id="viewDlg" class="scrdlg">
+    <div class="scrhead"><h3>Phân tích thống kê <span id="viewSym" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
+    <div class="seg viewtabs" id="viewTabs" role="group" aria-label="Chọn phân tích">
+      <button type="button" data-v="season">Mùa vụ</button><button type="button" data-v="acf">Tự tương quan</button><button type="button" data-v="hist">Phân phối lợi suất</button>
+      <button type="button" data-v="spec">Phổ chu kỳ</button><button type="button" data-v="rrg">RRG</button><button type="button" data-v="pnf">Điểm và hình (P&amp;F)</button>
+      <button type="button" data-v="eqv">Equivolume</button><button type="button" data-v="fwd">Lợi suất sau tín hiệu</button></div>
+    <div id="viewOpts" class="scrbar"></div><div id="viewBody"></div><p id="viewNote" class="k" style="font-size:11px;margin:6px 0 0"></p>
+  </dialog>
   <dialog id="scrDlg" class="scrdlg">
     <div class="scrhead"><h3>Bộ lọc cổ phiếu <span id="scrDate" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
     <div class="scrbar">
@@ -558,6 +570,8 @@ tbody tr[data-i]:hover { background: var(--panel); }
           <span class="k">Bán khi</span><select id="btA2" aria-label="Bán khi: vế trái"></select><select id="btO2" aria-label="Bán khi: điều kiện"><option value="">không dùng</option><option value="up">cắt lên</option><option value="dn" selected>cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select><select id="btB2" aria-label="Bán khi: vế phải"></select><input id="btN2" type="number" step="any" aria-label="Mức bán">
         </div>
         <div class="btrow"><label>Cắt lỗ % <input id="btSL" type="number" min="0" step="0.5" value="7"></label><label>Chốt lời % <input id="btTP" type="number" min="0" step="0.5" value="0"></label>
+          <label title="Thoát ở giá đóng cửa sau N nến nếu lệnh chưa có lãi (0 = tắt)">Thoát sau <input id="btTS" type="number" min="0" step="1" value="0"> nến</label>
+          <label title="Khi lãi đạt N × ATR(14), dời cắt lỗ về giá vào (0 = tắt)">Hòa vốn ở <input id="btBE" type="number" min="0" step="0.5" value="0"> ATR</label>
           <button type="button" class="primary" id="btRun">Chạy</button><button type="button" id="btClear">Xóa</button></div>
         <div id="btOut"></div></section>
       <section data-w="dw"><h3>Cửa sổ dữ liệu</h3><div id="dwBody" class="dwbody"></div></section>
@@ -1327,6 +1341,96 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Phân kỳ và failure swing => Divergence and failure swing
+Dao động (0 RSI 14, 1 MACD histogram, 2 Stochastic %K, 3 OBV) => Oscillator (0 RSI 14, 1 MACD histogram, 2 Stochastic %K, 3 OBV)
+Nến hai bên đỉnh, đáy => Bars each side of a swing
+Hai đỉnh cách nhau tối đa (nến) => Max bars between swings
+Failure swing RSI => RSI failure swing
+Phân kỳ => Divergence
+PK giảm => Bear div.
+PK tăng => Bull div.
+Mẫu thanh: spike, two-bar, hikkake, đảo, dead-cat => Bar patterns: spike, two-bar, hikkake, island, dead-cat
+Mẫu (0 tất cả, 1 spike bar, 2 two-bar reversal, 3 hikkake, 4 đảo (island), 5 dead-cat bounce) => Pattern (0 all, 1 spike bar, 2 two-bar reversal, 3 hikkake, 4 island, 5 dead-cat bounce)
+Spike: × ATR => Spike: × ATR
+Mẫu thanh => Bar patterns
+Đảo đỉnh => Island top
+Đảo đáy => Island bottom
+Quy tắc ba MA (4-9-18) => Three-MA rule (4-9-18)
+MA nhanh => Fast MA
+MA giữa => Middle MA
+MA chậm => Slow MA
+MA5 và MA20 ± ATR (Donchian) => MA5 and MA20 ± ATR (Donchian)
+Bộ lọc × ATR => Filter × ATR
+Opening range và stretch (trong phiên) => Opening range and stretch (intraday)
+Phút đầu phiên => First minutes
+Stretch Crabel => Crabel stretch
+OR cao => OR high
+OR thấp => OR low
+FiinTrade: KL dự phóng cả phiên (trong phiên) => FiinTrade: projected full-day volume (intraday)
+Sàn (0 HOSE 4,25 giờ, 1 HNX, UPCoM 4,5 giờ) => Exchange (0 HOSE 4.25 h, 1 HNX, UPCoM 4.5 h)
+KL dự phóng => Projected vol.
+Dự phóng => Projected
+TB 10 phiên => 10-session avg
+FiinTrade: tỷ lệ KL sau 14:00 (trong phiên) => FiinTrade: volume after 14:00 ratio (intraday)
+KL sau 14h ÷ trước => Vol after 14:00 ÷ before
+FiinTrade: tổng hợp kỹ thuật 5 mức => FiinTrade: 5-level technical summary
+FT 5 mức => FT 5-level
+Mức => Level
+RRG: RS-Ratio và RS-Momentum => RRG: RS-Ratio and RS-Momentum
+Momentum (nến) => Momentum (bars)
+Katsanos: phân kỳ Bollinger liên thị trường => Katsanos: intermarket Bollinger divergence
+Mùa vụ, tự tương quan, phân phối lợi suất, phổ chu kỳ, RRG, điểm và hình (P&F), Equivolume, lợi suất sau tín hiệu => Seasonality, autocorrelation, return distribution, cycle spectrum, RRG, point and figure, Equivolume, returns after a signal
+Phân tích thống kê… => Statistical views…
+Phân tích thống kê => Statistical views
+Chọn phân tích => Choose a view
+Mùa vụ => Seasonality
+Tự tương quan => Autocorrelation
+Phân phối lợi suất => Return distribution
+Phổ chu kỳ => Cycle spectrum
+Điểm và hình (P&F) => Point and figure
+Lợi suất sau tín hiệu => Returns after a signal
+Cần ít nhất khoảng 15 tháng nến ngày. => Needs about 15 months of daily bars.
+Cần ít nhất 100 nến. => Needs at least 100 bars.
+Cần ít nhất 128 nến. => Needs at least 128 bars.
+Đang tải chỉ số so sánh… => Loading the benchmark…
+Chưa đủ dữ liệu so sánh. => Not enough comparison data.
+Tháng => Month
+% năm tăng => % of years up
+Số năm => Years
+Số nến => Bars
+Trung bình => Mean
+Độ lệch chuẩn => Std dev
+Độ lệch (skew) => Skew
+Độ nhọn dư (kurtosis) => Excess kurtosis
+Ngoài ±3σ => Beyond ±3σ
+chuẩn => normal
+Tệ nhất => Worst
+Tốt nhất => Best
+Cột: số nến theo lợi suất; đường: phân phối chuẩn cùng trung bình và độ lệch chuẩn. Đuôi dày hơn đường chuẩn là các phiên cực đoan nhiều hơn mô hình chuẩn giả định. => Bars: number of bars by return; line: a normal distribution with the same mean and std dev. Tails fatter than the line mean more extreme sessions than the normal model assumes.
+Chu kỳ mạnh nhất (nến) => Strongest cycles (bars)
+Công suất theo độ dài chu kỳ (nến) của giá log đã bỏ xu hướng. Giá chứng khoán gần như bước ngẫu nhiên: phổ dồn về chu kỳ dài là bình thường; một gai hẹp, cao mới là chu kỳ đáng chú ý. => Power by cycle length (bars) of the detrended log price. Stock prices are close to a random walk: power piling up at long cycles is normal; only a tall, narrow spike is a cycle worth noting.
+Dẫn dắt => Leading
+Cải thiện => Improving
+Tụt hậu => Lagging
+Suy yếu => Weakening
+Đảo chiều => Reversal
+Ô => Box
+ô => boxes
+80 nến gần nhất. Bề rộng mỗi hộp theo khối lượng, chiều cao theo biên độ cao – thấp; xanh: đóng cửa cao hơn nến trước. Hộp rộng và thấp = khối lượng lớn nhưng giá không đi (cung cầu giằng co); hộp hẹp và cao = giá đi dễ. => The last 80 bars. Each box is as wide as its volume and as tall as its high-low range; blue closed above the previous bar. Wide and short = heavy volume but little movement (supply meets demand); narrow and tall = price moves easily.
+Thêm một chỉ báo có đánh dấu (mẫu nến, phân kỳ, quy tắc ba MA, …) để xem lợi suất sau tín hiệu. => Add an indicator with markers (candle patterns, divergence, three-MA rule, …) to see the returns after its signals.
+Tín hiệu => Signal
+Đợt => Episodes
+mọi ngày => any day
+% tăng => % up
+Tăng ▲ => Up ▲
+Giảm ▼ => Down ▼
+Lợi suất sau tín hiệu 5, 21, 63 nến so với lợi suất của mọi ngày cùng độ dài. "Đợt": tín hiệu cách nhau hơn 10 nến tính là một đợt mới; các tín hiệu dồn dập trong một đợt không độc lập. MDE ≈ 2 × độ lệch chuẩn ÷ √số đợt: chênh lệch nhỏ hơn mức này chưa phân biệt được với may rủi. => Returns 5, 21 and 63 bars after a signal against the return of any day over the same span. "Episodes": signals more than 10 bars apart start a new episode; signals bunched in one episode are not independent. MDE ≈ 2 × std dev ÷ √episodes: a difference smaller than this cannot be told from luck.
+Thoát ở giá đóng cửa sau N nến nếu lệnh chưa có lãi (0 = tắt) => Exit at the close after N bars if the trade is not in profit (0 = off)
+Thoát sau => Exit after
+Khi lãi đạt N × ATR(14), dời cắt lỗ về giá vào (0 = tắt) => Once the gain reaches N × ATR(14), move the stop to the entry (0 = off)
+Hòa vốn ở => Break-even at
+hòa vốn => break-even
+hết thời gian => time stop
 Kế hoạch giao dịch => Trade plan
 Chưa đủ dữ liệu. => Not enough data.
 Vượt kháng cự => Resistance breakout
@@ -2477,6 +2581,155 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       }
       return { out: [MARKS(m)] }; } });
   // Alone the key reversal is "strikingly unimpressive" (CMT L2); the true-range filter carries what edge there is.
+  // ---- catalogue items built 16 Nov 2026 (TA_CATALOGUE.md "still to build") ----
+  // Divergence (Murphy; L1 p214, L2 p184-187): price makes a higher swing high while the oscillator makes a lower one
+  // (bearish), or the mirror at lows. Swings need k bars on each side, so the marker sits k bars after the swing: no
+  // look-ahead. Failure swing (Wilder, RSI only): above 70, a lower RSI peak, then RSI breaks its reaction low (mirror).
+  // A warning, not an entry; it matters after an extended trend and at extremes.
+  const pivots = (a, k, hi) => { const out = []; for (let i = k; i < a.length - k; i++) { let ok = a[i] != null; for (let j = i - k; ok && j <= i + k; j++) if (j !== i && a[j] != null && (hi ? a[j] > a[i] || (j < i && a[j] === a[i]) : a[j] < a[i] || (j < i && a[j] === a[i]))) ok = false; if (ok) out.push(i); } return out; };
+  def({ id: 'diverg', name: 'Phân kỳ và failure swing', group: 'Tín hiệu', overlay: true,
+    params: [pr('osc', 'Dao động (0 RSI 14, 1 MACD histogram, 2 Stochastic %K, 3 OBV)', 0, 0, 3), pr('k', 'Nến hai bên đỉnh, đáy', 5, 2, 20), pr('gap', 'Hai đỉnh cách nhau tối đa (nến)', 60, 10, 250), pr('fs', 'Failure swing RSI (0/1)', 1, 0, 1)],
+    colors: [MARK], label: p => `Phân kỳ ${['RSI', 'MACD', 'Stoch', 'OBV'][p.osc]}`,
+    calc: (R, p) => {
+      const n = R.c.length, m = [];
+      const O = p.osc === 0 ? RSI(R.c, 14) : p.osc === 1 ? zip(zip(EMA(R.c, 12), EMA(R.c, 26), (a, b) => a - b), EMA(zip(EMA(R.c, 12), EMA(R.c, 26), (a, b) => a - b).map(x => x ?? null), 9), (a, b) => a - b)
+        : p.osc === 2 ? zip(zip(R.c, LL(R.l, 14), (c, l) => c - l), zip(HH(R.h, 14), LL(R.l, 14), (h, l) => h - l), (a, b) => b ? 100 * a / b : 50)
+        : (() => { let t = 0; return R.c.map((x, i) => { if (i) t += x > R.c[i - 1] ? R.v[i] : x < R.c[i - 1] ? -R.v[i] : 0; return t; }); })();
+      for (const [hi, dir, text] of [[true, -1, 'PK giảm'], [false, 1, 'PK tăng']]) {
+        const P = pivots(hi ? R.h : R.l, p.k, hi);
+        for (let q = 1; q < P.length; q++) { const a = P[q - 1], b = P[q]; if (b - a > p.gap || O[a] == null || O[b] == null) continue;
+          const pa = hi ? R.h[a] : R.l[a], pb = hi ? R.h[b] : R.l[b];
+          if (hi ? pb > pa && O[b] < O[a] : pb < pa && O[b] > O[a]) m.push({ i: Math.min(n - 1, b + p.k), dir, text }); }
+      }
+      if (p.fs && p.osc === 0) {   // failure swings on RSI 14
+        const r = O; let st = null;
+        for (let i = 1; i < n; i++) { const v = r[i]; if (v == null) continue;
+          if (!st) { if (v > 70) st = { top: true, peak: v, low: null, lower: false }; else if (v < 30) st = { top: false, peak: v, low: null, lower: false }; continue; }
+          if (st.top) { if (st.low == null) { if (v > st.peak) st.peak = v; else if (v < r[i - 1]) st.low = v; continue; }
+            if (v < st.low && !st.lower) { st.low = v; continue; } if (v > st.low && v < st.peak) st.lower = true;
+            if (st.lower && v < st.low) { m.push({ i, dir: -1, text: 'Failure swing' }); st = null; } else if (v >= st.peak) st = { top: true, peak: v, low: null, lower: false }; }
+          else { if (st.low == null) { if (v < st.peak) st.peak = v; else if (v > r[i - 1]) st.low = v; continue; }
+            if (v > st.low && !st.lower) { st.low = v; continue; } if (v < st.low && v > st.peak) st.lower = true;
+            if (st.lower && v > st.low) { m.push({ i, dir: 1, text: 'Failure swing' }); st = null; } else if (v <= st.peak) st = { top: false, peak: v, low: null, lower: false }; } }
+      }
+      return { out: [MARKS(m.sort((a, b) => a.i - b.i))] };
+    } });
+  // Bar patterns (Kaufman, Kirkpatrick & Dahlquist): spike bar, two-bar reversal, hikkake, island reversal, dead-cat bounce.
+  def({ id: 'barpat', name: 'Mẫu thanh: spike, two-bar, hikkake, đảo, dead-cat', group: 'Mẫu hình & mức giá', overlay: true,
+    params: [pr('which', 'Mẫu (0 tất cả, 1 spike bar, 2 two-bar reversal, 3 hikkake, 4 đảo (island), 5 dead-cat bounce)', 0, 0, 5), LEN(20), pr('k', 'Spike: × ATR', 0.75, 0.3, 3, 0.05)],
+    colors: [MARK], label: p => ['Mẫu thanh', 'Spike bar', 'Two-bar', 'Hikkake', 'Island', 'Dead-cat'][p.which],
+    calc: (R, p) => {
+      const n = R.c.length, A = RMA(TR(R), p.len), hh = HH(R.h, p.len), ll = LL(R.l, p.len), m = [], on = w => !p.which || p.which === w;
+      for (let i = 2; i < n; i++) {
+        const a = A[i - 2];
+        if (on(1) && a && hh[i - 2] != null) {   // spike: bar i-1 pokes k·ATR past the prior n-bar extreme and bar i falls back k·ATR
+          if (R.h[i - 1] - hh[i - 2] > p.k * a && R.h[i - 1] - R.h[i] > p.k * a) m.push({ i, dir: -1, text: 'Spike' });
+          if (ll[i - 2] - R.l[i - 1] > p.k * a && R.l[i] - R.l[i - 1] > p.k * a) m.push({ i, dir: 1, text: 'Spike' }); }
+        if (on(2) && A[i] && i > 12) {   // two long bars of similar length, opposite colour, same extreme, after a 10-bar move
+          const r1 = R.h[i - 1] - R.l[i - 1], r2 = R.h[i] - R.l[i], sim = r1 > 1.3 * A[i] && r2 > 1.3 * A[i] && r1 / r2 > 0.75 && r1 / r2 < 1.33;
+          if (sim && R.c[i - 2] > R.c[i - 12] && R.c[i - 1] > R.o[i - 1] && R.c[i] < R.o[i] && Math.abs(R.h[i] - R.h[i - 1]) < 0.25 * A[i]) m.push({ i, dir: -1, text: 'Two-bar' });
+          if (sim && R.c[i - 2] < R.c[i - 12] && R.c[i - 1] < R.o[i - 1] && R.c[i] > R.o[i] && Math.abs(R.l[i] - R.l[i - 1]) < 0.25 * A[i]) m.push({ i, dir: 1, text: 'Two-bar' }); }
+        if (on(3) && i >= 3 && R.h[i - 2] < R.h[i - 3] && R.l[i - 2] > R.l[i - 3]) {   // hikkake: inside bar, a false break, then through the other side within 3 bars
+          const ih = R.h[i - 2], il = R.l[i - 2];
+          if (R.l[i - 1] < il) for (let j = i; j < Math.min(n, i + 3); j++) { if (R.c[j] > ih) { m.push({ i: j, dir: 1, text: 'Hikkake' }); break; } }
+          if (R.h[i - 1] > ih) for (let j = i; j < Math.min(n, i + 3); j++) { if (R.c[j] < il) { m.push({ i: j, dir: -1, text: 'Hikkake' }); break; } } }
+        if (on(4) && R.h[i] < R.l[i - 1]) {   // island top: a gap down under a cluster that itself gapped up (1-10 bars)
+          for (let a0 = i - 1; a0 >= Math.max(1, i - 10); a0--) { let lo = Infinity; for (let j = a0; j < i; j++) lo = Math.min(lo, R.l[j]); if (R.l[a0] > R.h[a0 - 1] && lo > R.h[a0 - 1] && R.h[i] < lo) { m.push({ i, dir: -1, text: 'Đảo đỉnh' }); break; } } }
+        if (on(4) && R.l[i] > R.h[i - 1]) {
+          for (let a0 = i - 1; a0 >= Math.max(1, i - 10); a0--) { let hi = -Infinity; for (let j = a0; j < i; j++) hi = Math.max(hi, R.h[j]); if (R.h[a0] < R.l[a0 - 1] && hi < R.l[a0 - 1] && R.l[i] > hi) { m.push({ i, dir: 1, text: 'Đảo đáy' }); break; } } }
+      }
+      if (on(5)) for (let i = 6; i < n; i++) {   // dead cat: a fall of over 20% within 5 bars, a bounce of 5%+, then back under the bounce's midpoint
+        let top = 0; for (let j = i - 5; j < i; j++) top = Math.max(top, R.c[j]);
+        if (!(R.c[i] < 0.8 * top && R.c[i - 1] >= 0.8 * top)) continue;
+        let low = R.l[i], peak = 0, pk = -1;
+        for (let j = i + 1; j < Math.min(n, i + 25); j++) { low = Math.min(low, R.l[j]); if (R.h[j] > peak) { peak = R.h[j]; pk = j; }
+          if (pk > 0 && peak >= 1.05 * low && j > pk && R.c[j] < (peak + low) / 2) { m.push({ i: j, dir: -1, text: 'Dead-cat' }); i = j; break; } }
+      }
+      return { out: [MARKS(m)] };
+    } });
+  // Rule markers (Kaufman): three moving averages (slow = direction, middle = holding, fast = entry), the MA5/MA20 ± ATR
+  // filter, and Wilder's DI-cross stop. Markers mark entries and exits of a long-only position.
+  def({ id: 'ma3rule', name: 'Quy tắc ba MA (4-9-18)', group: 'Tín hiệu', overlay: true,
+    params: [pr('f', 'MA nhanh', 4, 2, 50), pr('m', 'MA giữa', 9, 3, 100), pr('s', 'MA chậm', 18, 5, 250)], colors: [col('line', 'Màu', C.ocean), MARK], label: p => `3 MA ${p.f}-${p.m}-${p.s}`,
+    calc: (R, p, c) => { const F = SMA(R.c, p.f), M = SMA(R.c, p.m), S = SMA(R.c, p.s), m = []; let pos = false;
+      for (let i = 1; i < R.c.length; i++) { if (S[i - 1] == null) continue; const up = S[i] > S[i - 1];
+        if (!pos && up && F[i - 1] <= M[i - 1] && F[i] > M[i]) { pos = true; m.push({ i, dir: 1, text: 'Mua' }); }
+        else if (pos && (F[i] < M[i] || !up)) { pos = false; m.push({ i, dir: -1, text: 'Bán' }); } }
+      return { out: [L(`MA${p.f}`, F, fade(c.line, 0.5), 1), L(`MA${p.m}`, M, c.line, 1), L(`MA${p.s}`, S, C.navy, 2), MARKS(m)] }; } });
+  def({ id: 'donatr', name: 'MA5 và MA20 ± ATR (Donchian)', group: 'Tín hiệu', overlay: true,
+    params: [pr('k', 'Bộ lọc × ATR', 1, 0, 3, 0.1)], colors: [MARK], label: p => `MA5/20 ± ${p.k} ATR`,
+    calc: (R, p) => { const a5 = SMA(R.c, 5), a20 = SMA(R.c, 20), A = RMA(TR(R), 14), m = []; let pos = false;
+      for (let i = 20; i < R.c.length; i++) { if (a20[i] == null || !A[i]) continue; const k = p.k * A[i];
+        if (!pos && R.c[i] > a5[i] + k && R.c[i] > a20[i] + k) { pos = true; m.push({ i, dir: 1, text: 'Mua' }); }
+        else if (pos && (R.c[i] < a5[i] - k || R.c[i] < a20[i] - k)) { pos = false; m.push({ i, dir: -1, text: 'Bán' }); } }
+      return { out: [MARKS(m)] }; } });
+  def({ id: 'distop', name: 'DI-cross stop (Wilder)', group: 'Xu hướng', overlay: true,
+    params: [LEN(14)], colors: [col('line', 'Màu', C.coral)], label: p => `DI stop ${p.len}`,
+    calc: (R, p, c) => { const { pdi, mdi } = ADX(R, p.len), v = N(R.c.length), m = []; let lvl = null;
+      for (let i = 1; i < R.c.length; i++) { if (pdi[i - 1] == null || mdi[i - 1] == null) continue;
+        if (pdi[i - 1] <= mdi[i - 1] && pdi[i] > mdi[i]) { lvl = R.l[i]; m.push({ i, dir: 1, text: '+DI' }); }   // long: the stop at the cross bar's low
+        else if (pdi[i - 1] >= mdi[i - 1] && pdi[i] < mdi[i]) { lvl = R.h[i]; m.push({ i, dir: -1, text: '−DI' }); }
+        v[i] = lvl; }
+      return { out: [L('DI stop', v, c.line, 2, 2), MARKS(m)] }; } });
+  // Intraday (VN sessions 9:00-11:30, 13:00-14:45 HOSE / 15:00 HNX, UPCoM): opening range and Crabel stretch; FiinTrade's
+  // projected full-day volume and closing-session ratio. On a daily or longer chart they draw nothing.
+  const vnMin = t => Math.floor(t / 60) % 1440, vnDay = t => Math.floor(t / 86400), sessH = (mn, end) => { const a = Math.min(mn, 690) - 540, b = mn > 780 ? Math.min(mn, end) - 780 : 0; return Math.max(0, a + b) / 60; };
+  def({ id: 'orb', name: 'Opening range và stretch (trong phiên)', group: 'Kênh & dải', overlay: true,
+    params: [pr('min', 'Phút đầu phiên', 30, 5, 120, 5), pr('st', 'Stretch Crabel (0/1)', 1, 0, 1)], colors: [col('line', 'Màu', C.ocean), MARK], label: p => `OR ${p.min}′`,
+    calc: (R, p, c) => { const n = R.c.length, hi = N(n), lo = N(n), su = N(n), sd = N(n), m = []; if (typeof R.t[0] !== 'number') return { out: [] };
+      const days = []; let cur = null;
+      for (let i = 0; i < n; i++) { const d = vnDay(R.t[i]); if (!cur || cur.d !== d) { cur = { d, o: R.o[i], h: R.h[i], l: R.l[i], i0: i, orh: -Infinity, orl: Infinity, broke: 0 }; days.push(cur); }
+        cur.h = Math.max(cur.h, R.h[i]); cur.l = Math.min(cur.l, R.l[i]);
+        if (vnMin(R.t[i]) < 540 + p.min) { cur.orh = Math.max(cur.orh, R.h[i]); cur.orl = Math.min(cur.orl, R.l[i]); continue; }
+        hi[i] = cur.orh; lo[i] = cur.orl;
+        if (!cur.broke && isFinite(cur.orh)) { if (R.c[i] > cur.orh) { cur.broke = 1; m.push({ i, dir: 1, text: 'ORB' }); } else if (R.c[i] < cur.orl) { cur.broke = -1; m.push({ i, dir: -1, text: 'ORB' }); } } }
+      if (p.st) for (let q = 10; q < days.length; q++) {   // stretch: SMA10 of |open − nearer extreme| of the previous ten sessions
+        let s = 0; for (let k = q - 10; k < q; k++) s += Math.min(days[k].h - days[k].o, days[k].o - days[k].l); s /= 10;
+        const D = days[q], end = q + 1 < days.length ? days[q + 1].i0 : n; for (let i = D.i0; i < end; i++) { su[i] = D.o + s; sd[i] = D.o - s; } }
+      return { out: [L('OR cao', hi, c.line, 2), L('OR thấp', lo, c.line, 2), L('Stretch +', su, C.gray2, 1, 2), L('Stretch −', sd, C.gray2, 1, 2), MARKS(m)] }; } });
+  def({ id: 'ftproj', name: 'FiinTrade: KL dự phóng cả phiên (trong phiên)', group: 'Khối lượng', overlay: false, fmt: 'vol',
+    params: [pr('ex', 'Sàn (0 HOSE 4,25 giờ, 1 HNX, UPCoM 4,5 giờ)', 0, 0, 1)], colors: [col('line', 'Màu', C.navy)], label: () => 'KL dự phóng',
+    calc: (R, p, c) => { const n = R.c.length, out = N(n), avg = N(n); if (typeof R.t[0] !== 'number') return { out: [] };
+      const end = p.ex ? 900 : 885, tot = p.ex ? 4.5 : 4.25, dv = new Map(); for (const r of state.daily) dv.set(r.t, r.v);
+      const days = [...new Set(state.daily.map(r => r.t))]; let cum = 0, d0 = null;
+      for (let i = 0; i < n; i++) { const d = vnDay(R.t[i]); if (d !== d0) { cum = 0; d0 = d; } cum += R.v[i];
+        const el = sessH(vnMin(R.t[i]) + (+state.tf || 1), end); out[i] = el > 0.1 ? cum * tot / Math.min(tot, el) : null;
+        const ds = new Date(d * 86400e3).toISOString().slice(0, 10), k = days.indexOf(ds); if (k >= 10) { let s = 0; for (let j = k - 10; j < k; j++) s += dv.get(days[j]) || 0; avg[i] = s / 10; } }
+      return { out: [H('Dự phóng', out, out.map((v, i) => v != null && avg[i] && v > avg[i] ? C.navy : C.bar)), L('TB 10 phiên', avg, c.line, 1, 2)] }; } });
+  def({ id: 'ftclose', name: 'FiinTrade: tỷ lệ KL sau 14:00 (trong phiên)', group: 'Khối lượng', overlay: false,
+    params: [], colors: [col('line', 'Màu', C.navy)], label: () => 'KL sau 14h ÷ trước',
+    calc: (R, p, c) => { const n = R.c.length, out = N(n); if (typeof R.t[0] !== 'number') return { out: [] };
+      let a = 0, b = 0, d0 = null, last = -1;
+      const flush = () => { if (last >= 0 && a > 0) out[last] = 100 * b / a; };
+      for (let i = 0; i < n; i++) { const d = vnDay(R.t[i]); if (d !== d0) { flush(); a = b = 0; d0 = d; } if (vnMin(R.t[i]) >= 840) b += R.v[i]; else a += R.v[i]; last = i; }
+      flush();
+      return { out: [H('%', out, out.map(v => v != null && v > 20 ? C.navy : C.bar))], levels: [LV(20, C.coral)] }; } });
+  // FiinTrade technical summary (FT-TA p4-7): price vs MA5 votes the trend; RSI14 > 50, CMF20 > 0 and ROC9 > 0 vote the
+  // momentum by majority. Both up with all three = strong bull (2); both up = bull (1); split = neutral; mirror below.
+  def({ id: 'ft5', name: 'FiinTrade: tổng hợp kỹ thuật 5 mức', group: 'Tín hiệu', overlay: false,
+    params: [], colors: [], label: () => 'FT 5 mức',
+    calc: (R) => { const n = R.c.length, ma5 = SMA(R.c, 5), rsi = RSI(R.c, 14), mfv = R.c.map((x, i) => R.h[i] === R.l[i] ? 0 : ((x - R.l[i]) - (R.h[i] - x)) / (R.h[i] - R.l[i]) * R.v[i]),
+      cmf = zip(sum(mfv, 20), sum(R.v, 20), (a, b) => b ? a / b : 0), v = N(n);
+      for (let i = 20; i < n; i++) { if (ma5[i] == null || rsi[i] == null || cmf[i] == null) continue;
+        const t = R.c[i] > ma5[i] ? 1 : -1, votes = [rsi[i] > 50, cmf[i] > 0, R.c[i] > R.c[i - 9]].filter(Boolean).length, mo = votes >= 2 ? 1 : -1;
+        v[i] = t !== mo ? 0 : t * ((t > 0 ? votes === 3 : votes === 0) ? 2 : 1); }
+      return { out: [H('Mức', v, v.map(x => x == null ? null : x > 0 ? (x > 1 ? C.up : C.upSoft) : x < 0 ? (x < -1 ? C.down : C.downSoft) : C.gray1))], levels: [LV(0, C.gray1, 0)] }; } });
+  // RRG for one name (JdK approximation, L3 p433-471): RS-Ratio = 100 · RS ÷ SMA(RS, n); RS-Momentum = 100 · RS-Ratio ÷
+  // RS-Ratio m bars ago. Above 100 on both = leading; ratio up, momentum down = weakening; both down = lagging; else improving.
+  def({ id: 'rrg', name: 'RRG: RS-Ratio và RS-Momentum', group: 'So sánh', overlay: false,
+    params: [LEN(50), pr('m', 'Momentum (nến)', 10, 2, 60)], colors: [col('a', 'RS-Ratio', C.navy), col('b', 'RS-Momentum', C.coral)], label: p => `RRG vs ${state.bench}`,
+    calc: (R, p, c) => { const b = R.bench(), n = R.c.length; if (!b) return { out: [L('RS-Ratio', N(n), c.a)] };
+      const rs = zip(R.c, b, (x, y) => y ? x / y : null), sm = SMA(rs.map(x => x ?? null), p.len), ra = zip(rs, sm, (x, y) => y ? 100 * x / y : null), mo = ra.map((x, i) => x != null && ra[i - p.m] ? 100 * x / ra[i - p.m] : null);
+      return { out: [L('RS-Ratio', ra, c.a, 2), L('RS-Momentum', mo, c.b, 2)], levels: [LV(100, C.gray1, 0)] }; } });
+  // Katsanos intermarket Bollinger divergence (L3 p413-415): EMA3 of (%B of the benchmark − %B of the stock) ÷ %B of the
+  // stock × 100, signed by their 60-bar correlation. Positive = the stock lags where the benchmark points.
+  def({ id: 'katsanos', name: 'Katsanos: phân kỳ Bollinger liên thị trường', group: 'So sánh', overlay: false,
+    params: [LEN(20)], colors: [col('line', 'Màu', C.navy)], label: p => `Katsanos BB vs ${state.bench}`,
+    calc: (R, p, c) => { const b = R.bench(), n = R.c.length; if (!b) return { out: [L('Katsanos', N(n), c.line)] };
+      const pb = x => { const m = SMA(x, p.len), sd = STDEV(x, p.len, m); return x.map((v, i) => m[i] == null || !sd[i] ? null : (v - (m[i] - 2 * sd[i])) / (4 * sd[i])); };
+      const ps = pb(R.c), pi = pb(b.map(x => x ?? null)), co = PAIR(RET(R.c), RET(b), 60).corr;
+      const raw = ps.map((x, i) => x == null || pi[i] == null || co[i] == null ? null : (pi[i] - x) / Math.max(Math.abs(x), 0.05) * 100 * Math.sign(co[i] || 1));
+      return { out: [L('Katsanos', EMA(raw, 3), c.line, 2)], levels: ZERO }; } });
   def({ id: 'keyrev', name: 'Key reversal (lọc theo biên độ)', group: 'Mẫu hình & mức giá', overlay: true,
     params: [LEN(20), pr('k', 'TR ≥ × ATR', 1.5, 0, 5, 0.1)], colors: [MARK], label: p => `Key rev ${p.len}`,
     calc: (R, p) => { const a = RMA(TR(R), 20), tr = TR(R), hh = HH(R.h, p.len), ll = LL(R.l, p.len), m = [];
@@ -4719,13 +4972,17 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const hit = (A, B, op, i) => { const a = A[i], b = B[i], pa = A[i - 1], pb = B[i - 1]; if (a == null || b == null) return false;
       return op === 'gt' ? a > b : op === 'lt' ? a < b : pa == null || pb == null ? false : op === 'up' ? pa < pb && a >= b : pa > pb && a <= b; };
     const sl = Math.max(0, +$('btSL').value || 0) / 100, tp = Math.max(0, +$('btTP').value || 0) / 100, T = [];
+    const tStop = Math.max(0, Math.round(+$('btTS').value || 0)), beK = Math.max(0, +$('btBE').value || 0), A14 = beK ? RMA(TR({ h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }), 14) : null;
     let pos = null;
     for (let i = 1; i < n; i++) {
       if (pos) {
-        const r = rows[i], stop = sl ? pos.px * (1 - sl) : null, tgt = tp ? pos.px * (1 + tp) : null; let x = null, why = '';
-        if (stop != null && r.l <= stop) { x = Math.min(stop, r.o); why = 'cắt lỗ'; } else if (tgt != null && r.h >= tgt) { x = Math.max(tgt, r.o); why = 'chốt lời'; }
+        const r = rows[i], tgt = tp ? pos.px * (1 + tp) : null; let x = null, why = '';
+        const stop = pos.be ? Math.max(pos.px, sl ? pos.px * (1 - sl) : -Infinity) : sl ? pos.px * (1 - sl) : null;
+        if (stop != null && r.l <= stop) { x = Math.min(stop, r.o); why = pos.be ? 'hòa vốn' : 'cắt lỗ'; } else if (tgt != null && r.h >= tgt) { x = Math.max(tgt, r.o); why = 'chốt lời'; }
         else if (use2 && hit(A2, B2, $('btO2').value, i)) { x = r.c; why = 'tín hiệu bán'; }
+        else if (tStop && i - pos.i >= tStop && r.c <= pos.px) { x = r.c; why = 'hết thời gian'; }   // time stop: no profit after N bars
         if (x != null) { T.push({ ...pos, j: i, out: x, why, ret: x / pos.px - 1 }); pos = null; continue; }
+        if (beK && A14[pos.i] && r.h - pos.px >= beK * A14[pos.i]) pos.be = true;   // break-even from the next bar on
       } else if (hit(A1, B1, $('btO1').value, i)) pos = { i, px: rows[i].c };
     }
     if (pos) T.push({ ...pos, j: n - 1, out: rows[n - 1].c, why: 'đang giữ', ret: rows[n - 1].c / pos.px - 1, open: true });
@@ -6100,6 +6357,136 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('scrTab').addEventListener('click', e => { const h = e.target.closest('[data-s]'), r = e.target.closest('[data-c]');
     if (h) { scr.desc = scr.sort === h.dataset.s ? !scr.desc : true; scr.sort = h.dataset.s; scrRender(); }
     else if (r) { $('scrDlg').close(); loadSymbol(r.dataset.c); } });
+  // ---------- analysis views (not a time series, or their own axis) ----------
+  const view = { tab: safeGet('pt-ta-view') || 'season' };
+  const vCol = { bar: C.ocean, neg: C.coral, line: C.navy, grid: '#E3E8EE', text: '#5E6B78' };
+  // a bar chart in SVG: labels under, values as bars from zero, optional reference lines and a line over the bars
+  function vBars(vals, labels, o = {}) {
+    const W = 760, Hh = o.h || 280, L = 48, B = 26, T = 10, n = vals.length, ok = vals.filter(v => v != null && isFinite(v)).concat(o.ref || [], o.over || []).filter(v => v != null && isFinite(v));
+    let lo = Math.min(0, ...ok), hi = Math.max(0, ...ok); if (hi === lo) hi = lo + 1; const pad = (hi - lo) * 0.08; lo -= lo < 0 ? pad : 0; hi += pad;
+    const y = v => T + (hi - v) / (hi - lo) * (Hh - T - B), bw = (W - L - 8) / n, x = i => L + i * bw, fmt = o.fmt || (v => v.toFixed(2));
+    let g = ''; for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; g += `<line x1="${L}" x2="${W - 4}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${vCol.grid}"/><text x="${L - 4}" y="${(y(v) + 4).toFixed(1)}" font-size="10" fill="${vCol.text}" text-anchor="end">${fmt(v)}</text>`; }
+    g += `<line x1="${L}" x2="${W - 4}" y1="${y(0)}" y2="${y(0)}" stroke="${vCol.text}"/>`;
+    vals.forEach((v, i) => { if (v == null || !isFinite(v)) return; const y0 = y(Math.max(0, v)), y1 = y(Math.min(0, v));
+      g += `<rect x="${(x(i) + bw * 0.12).toFixed(1)}" y="${y0.toFixed(1)}" width="${(bw * 0.76).toFixed(1)}" height="${Math.max(0.5, y1 - y0).toFixed(1)}" fill="${o.color ? o.color(v, i) : v >= 0 ? vCol.bar : vCol.neg}"><title>${esc(String(labels[i]))}: ${fmt(v)}</title></rect>`; });
+    const every = Math.max(1, Math.ceil(n / 24)); labels.forEach((t, i) => { if (i % every === 0) g += `<text x="${(x(i) + bw / 2).toFixed(1)}" y="${Hh - 8}" font-size="10" fill="${vCol.text}" text-anchor="middle">${esc(String(t))}</text>`; });
+    for (const r of o.ref || []) g += `<line x1="${L}" x2="${W - 4}" y1="${y(r).toFixed(1)}" y2="${y(r).toFixed(1)}" stroke="${vCol.neg}" stroke-dasharray="4 3"/>`;
+    if (o.over) g += `<polyline fill="none" stroke="${vCol.line}" stroke-width="1.5" points="${o.over.map((v, i) => v == null ? '' : `${(x(i) + bw / 2).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>`;
+    return `<svg viewBox="0 0 ${W} ${Hh}" role="img">${g}</svg>`;
+  }
+  const vStats = pairs => `<div class="vstats">${pairs.map(([k, v]) => `<span><span class="k">${esc(tr(k))}</span> <b>${v}</b></span>`).join('')}</div>`;
+  const MONTHS = EN ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : Array.from({ length: 12 }, (_, i) => `T${i + 1}`);
+  const pct1 = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`;
+  function viewRender() {
+    const t = view.tab, D = state.daily, rows = state.rows, out = $('viewBody'), note = $('viewNote'), opts = $('viewOpts');
+    $('viewSym').textContent = `${state.sym} · ${TF_LABEL[state.tf]}`; $('viewTabs').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === t)));
+    opts.innerHTML = ''; note.textContent = '';
+    const need = (k, m) => { out.innerHTML = `<span class="k">${tr(m)}</span>`; return k; };
+    if (t === 'season') {   // monthly returns by calendar month, every year in the data
+      const D2 = D.length ? D : rows; if (D2.length < 300 || typeof D2[0].t !== 'string') return need(0, 'Cần ít nhất khoảng 15 tháng nến ngày.');
+      const mon = []; for (const r of D2) { const k = r.t.slice(0, 7); if (!mon.length || mon[mon.length - 1].k !== k) mon.push({ k, c: r.c }); else mon[mon.length - 1].c = r.c; }
+      const by = Array.from({ length: 12 }, () => []); for (let i = 1; i < mon.length; i++) by[+mon[i].k.slice(5) - 1].push(mon[i].c / mon[i - 1].c - 1);
+      const mean = by.map(a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null), pos = by.map(a => a.length ? a.filter(x => x > 0).length / a.length : null), med = by.map(a => { if (!a.length) return null; const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; });
+      out.innerHTML = vBars(mean.map(v => v == null ? null : v * 100), MONTHS, { fmt: v => v.toFixed(1) + '%', over: med.map(v => v == null ? null : v * 100) })
+        + `<table class="pattab"><tr><th>${tr('Tháng')}</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr><tr><td>${tr('% năm tăng')}</td>${pos.map(v => `<td>${v == null ? '' : Math.round(v * 100) + '%'}</td>`).join('')}</tr><tr><td>${tr('Số năm')}</td>${by.map(a => `<td>${a.length}</td>`).join('')}</tr></table>`;
+      note.textContent = EN ? `Bars: average return by month; line: median. ${mon[0].k} to ${mon[mon.length - 1].k}. With few years a pattern is easily chance; seasonality drifts over time.`
+        : `Cột: lợi suất trung bình mỗi tháng; đường: trung vị. ${mon[0].k}–${mon[mon.length - 1].k}. Mẫu ít năm dễ là ngẫu nhiên; mùa vụ trôi theo thời gian.`; return;
+    }
+    const lr = (a => a.map((r, i) => i ? Math.log(r.c / a[i - 1].c) : null).slice(1))(rows);
+    if (t === 'acf') {   // autocorrelation of bar returns by lag, with the ±2/√n band of a random series
+      if (lr.length < 100) return need(0, 'Cần ít nhất 100 nến.');
+      const n = lr.length, m = lr.reduce((x, y) => x + y, 0) / n, v0 = lr.reduce((s2, x) => s2 + (x - m) ** 2, 0), K = 30, ac = [];
+      for (let k = 1; k <= K; k++) { let s2 = 0; for (let i = k; i < n; i++) s2 += (lr[i] - m) * (lr[i - k] - m); ac.push(s2 / v0); }
+      const band = 2 / Math.sqrt(n); out.innerHTML = vBars(ac, ac.map((_, i) => i + 1), { fmt: v => v.toFixed(2), ref: [band, -band], color: v => Math.abs(v) > band ? vCol.line : '#B9C2CB' });
+      note.textContent = EN ? `Correlation of returns with themselves k bars earlier (k = 1-30), ${n} bars. Only bars beyond the red lines (±2/√n) differ from chance; dark bars cross them.`
+        : `Tương quan của lợi suất với chính nó k nến trước (k = 1…30), ${n} nến. Ngoài đường đỏ (±2/√n) mới khác ngẫu nhiên; cột đậm là các độ trễ vượt ngưỡng.`; return;
+    }
+    if (t === 'hist') {   // distribution of bar log returns against a normal curve with the same mean and sd
+      if (lr.length < 100) return need(0, 'Cần ít nhất 100 nến.');
+      const n = lr.length, m = lr.reduce((x, y) => x + y, 0) / n, sd = Math.sqrt(lr.reduce((s2, x) => s2 + (x - m) ** 2, 0) / (n - 1)), z = lr.map(x => (x - m) / sd);
+      const sk = z.reduce((s2, x) => s2 + x ** 3, 0) / n, ku = z.reduce((s2, x) => s2 + x ** 4, 0) / n - 3, B = 41, lo = m - 4 * sd, w = 8 * sd / B, cnt = Array(B).fill(0);
+      for (const x of lr) { const b = Math.floor((x - lo) / w); if (b >= 0 && b < B) cnt[b]++; }
+      const norm = cnt.map((_, b) => { const xc = lo + (b + 0.5) * w; return n * w * Math.exp(-0.5 * ((xc - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI)); });
+      const tail = z.filter(x => Math.abs(x) > 3).length / n;
+      out.innerHTML = vStats([['Số nến', n], ['Trung bình', pct1(Math.exp(m) - 1)], ['Độ lệch chuẩn', (sd * 100).toFixed(2) + '%'], ['Độ lệch (skew)', sk.toFixed(2)], ['Độ nhọn dư (kurtosis)', ku.toFixed(2)],
+        ['Ngoài ±3σ', `${(tail * 100).toFixed(2)}% (${tr('chuẩn')} 0.27%)`], ['Tệ nhất', pct1(Math.exp(Math.min(...lr)) - 1)], ['Tốt nhất', pct1(Math.exp(Math.max(...lr)) - 1)]])
+        + vBars(cnt, cnt.map((_, b) => ((lo + (b + 0.5) * w) * 100).toFixed(1) + '%'), { fmt: v => Math.round(v), over: norm, color: () => vCol.bar });
+      note.textContent = tr('Cột: số nến theo lợi suất; đường: phân phối chuẩn cùng trung bình và độ lệch chuẩn. Đuôi dày hơn đường chuẩn là các phiên cực đoan nhiều hơn mô hình chuẩn giả định.'); return;
+    }
+    if (t === 'spec') {   // periodogram of the detrended log price: power by cycle length
+      const N0 = Math.min(rows.length, 1024); if (N0 < 128) return need(0, 'Cần ít nhất 128 nến.');
+      const y = rows.slice(-N0).map(r => Math.log(r.c)), xm = (N0 - 1) / 2, ym = y.reduce((a, b) => a + b, 0) / N0; let sxy = 0, sxx = 0; y.forEach((v, i) => { sxy += (i - xm) * (v - ym); sxx += (i - xm) ** 2; });
+      const b = sxy / sxx, d = y.map((v, i) => v - ym - b * (i - xm)), P = [], per = [];
+      for (let k = 2; k <= N0 / 4; k++) { let re = 0, im = 0; for (let i = 0; i < N0; i++) { const a = 2 * Math.PI * k * i / N0; re += d[i] * Math.cos(a); im -= d[i] * Math.sin(a); } P.push((re * re + im * im) / N0); per.push(Math.round(N0 / k)); }
+      const top = P.map((v, i) => [v, per[i]]).sort((a, c) => c[0] - a[0]).slice(0, 3).map(x => x[1]);
+      out.innerHTML = vStats([['Số nến', N0], ['Chu kỳ mạnh nhất (nến)', top.join(', ')]]) + vBars(P.slice().reverse(), per.slice().reverse(), { fmt: v => v.toExponential(1), color: () => vCol.bar });
+      note.textContent = tr('Công suất theo độ dài chu kỳ (nến) của giá log đã bỏ xu hướng. Giá chứng khoán gần như bước ngẫu nhiên: phổ dồn về chu kỳ dài là bình thường; một gai hẹp, cao mới là chu kỳ đáng chú ý.'); return;
+    }
+    if (t === 'rrg') {   // the symbol's tail against the benchmark, last 12 points a week apart
+      const bd = ext(`bench:${state.bench}`); if (!bd) { setTimeout(() => { if ($('viewDlg').open && view.tab === 'rrg') viewRender(); }, 1500); return need(0, 'Đang tải chỉ số so sánh…'); }
+      const b = align(bd, rows), rs = rows.map((r, i) => b[i] ? r.c / b[i] : null), sm = SMA(rs, 50), ra = zip(rs, sm, (x, y2) => y2 ? 100 * x / y2 : null), mo = ra.map((x, i) => x != null && ra[i - 10] ? 100 * x / ra[i - 10] : null);
+      const step = state.tf === 'D' ? 5 : 1, pts = []; for (let i = rows.length - 1; i >= 0 && pts.length < 12; i -= step) if (ra[i] != null && mo[i] != null) pts.unshift({ x: ra[i], y: mo[i], t: rows[i].t });
+      if (pts.length < 2) return need(0, 'Chưa đủ dữ liệu so sánh.');
+      const W = 520, Hh = 420, xs = pts.map(q => q.x).concat(100), ys = pts.map(q => q.y).concat(100), x0 = Math.min(...xs) - 1, x1 = Math.max(...xs) + 1, y0 = Math.min(...ys) - 1, y1 = Math.max(...ys) + 1;
+      const X = v => 40 + (v - x0) / (x1 - x0) * (W - 60), Y = v => 10 + (y1 - v) / (y1 - y0) * (Hh - 40);
+      const q = [[X(100), 10, W - 20 - X(100), Y(100) - 10, '#E7F4EC', 'Dẫn dắt'], [40, 10, X(100) - 40, Y(100) - 10, '#E8EEF7', 'Cải thiện'], [40, Y(100), X(100) - 40, Hh - 30 - Y(100), '#FBEAE6', 'Tụt hậu'], [X(100), Y(100), W - 20 - X(100), Hh - 30 - Y(100), '#FFF5DD', 'Suy yếu']];
+      let g = q.map(([x, y, w, h, f, lab]) => `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${Math.max(0, h)}" fill="${f}"/><text x="${x + 6}" y="${y + 16}" font-size="11" fill="${vCol.text}">${esc(tr(lab))}</text>`).join('');
+      g += `<polyline fill="none" stroke="${vCol.line}" stroke-width="1.5" points="${pts.map(p2 => `${X(p2.x).toFixed(1)},${Y(p2.y).toFixed(1)}`).join(' ')}"/>`
+        + pts.map((p2, i) => `<circle cx="${X(p2.x).toFixed(1)}" cy="${Y(p2.y).toFixed(1)}" r="${i === pts.length - 1 ? 5 : 2.5}" fill="${vCol.line}"><title>${esc(fmtDate(p2.t))}: ${p2.x.toFixed(1)}, ${p2.y.toFixed(1)}</title></circle>`).join('')
+        + `<text x="${W / 2}" y="${Hh - 8}" font-size="10" fill="${vCol.text}" text-anchor="middle">RS-Ratio</text><text x="12" y="${Hh / 2}" font-size="10" fill="${vCol.text}" transform="rotate(-90 12 ${Hh / 2})" text-anchor="middle">RS-Momentum</text>`;
+      out.innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" style="max-width:560px">${g}</svg>`;
+      note.textContent = EN ? `${state.sym} against ${state.bench}: the last 12 points, one ${step === 5 ? 'week' : 'bar'} apart; the large dot is now. RS-Ratio = 100 × RS ÷ its 50-bar MA; RS-Momentum = the change in RS-Ratio over 10 bars (a JdK approximation). Change the index in the "vs" box.`
+        : `${state.sym} so với ${state.bench}: 12 điểm gần nhất, cách nhau ${step === 5 ? 'một tuần' : 'một nến'}; chấm lớn là hiện tại. RS-Ratio = 100 × RS ÷ MA50 của RS; RS-Momentum = thay đổi của RS-Ratio sau 10 nến (xấp xỉ JdK). Đổi chỉ số ở ô "So với".`; return;
+    }
+    if (t === 'pnf') {   // point and figure on closes: box % of price (log boxes), reversal of n boxes
+      opts.innerHTML = `<label>${tr('Ô')} <input id="pnfBox" type="number" min="0.5" max="10" step="0.5" value="${view.box || 2}"> %</label><label>${tr('Đảo chiều')} <input id="pnfRev" type="number" min="1" max="5" step="1" value="${view.rev || 3}"> ${tr('ô')}</label>`;
+      const bx = Math.log(1 + (view.box || 2) / 100), rv = view.rev || 3, src = D.length ? D : rows; if (src.length < 30) return need(0, 'Chưa đủ dữ liệu.');
+      const lv = p2 => Math.floor(Math.log(p2) / bx), cols = []; let cur = null;
+      for (const r of src) { const L2 = lv(r.c);
+        if (!cur) { cur = { up: true, a: L2, b: L2, t: r.t }; cols.push(cur); continue; }
+        if (cur.up) { if (L2 > cur.b) cur.b = L2; else if (cur.b - L2 >= rv) { cur = { up: false, a: cur.b - 1, b: L2, t: r.t }; cols.push(cur); } }
+        else { if (L2 < cur.b) cur.b = L2; else if (L2 - cur.b >= rv) { cur = { up: true, a: cur.b + 1, b: L2, t: r.t }; cols.push(cur); } } }
+      const C2 = cols.slice(-70), hiL = Math.max(...C2.map(c2 => Math.max(c2.a, c2.b))), loL = Math.min(...C2.map(c2 => Math.min(c2.a, c2.b))), rowsN = hiL - loL + 1, cs = Math.max(6, Math.min(14, Math.floor(700 / C2.length))), rh = Math.max(6, Math.min(12, Math.floor(420 / rowsN)));
+      const W = 60 + C2.length * cs, Hh = 20 + rowsN * rh; let g = '';
+      for (let L2 = loL; L2 <= hiL; L2 += Math.max(1, Math.round(rowsN / 12))) g += `<text x="54" y="${(10 + (hiL - L2) * rh + rh * 0.8).toFixed(1)}" font-size="9" fill="${vCol.text}" text-anchor="end">${Math.exp(L2 * bx).toFixed(2)}</text>`;
+      C2.forEach((c2, k) => { const lo2 = Math.min(c2.a, c2.b), hi2 = Math.max(c2.a, c2.b), x = 60 + k * cs;
+        for (let L2 = lo2; L2 <= hi2; L2++) { const y = 10 + (hiL - L2) * rh;
+          g += c2.up ? `<path d="M${x + 1} ${y + 1}L${x + cs - 1} ${y + rh - 1}M${x + cs - 1} ${y + 1}L${x + 1} ${y + rh - 1}" stroke="${vCol.bar}" stroke-width="1.2"/>` : `<ellipse cx="${x + cs / 2}" cy="${y + rh / 2}" rx="${cs / 2 - 1}" ry="${rh / 2 - 1}" fill="none" stroke="${vCol.neg}" stroke-width="1.2"/>`; }
+        const prev = C2[k - 2]; if (prev && c2.up === prev.up && (c2.up ? c2.b > prev.b : c2.b < prev.b)) g += `<text x="${x + cs / 2}" y="${10 + (hiL - (c2.up ? hi2 : lo2)) * rh + (c2.up ? -2 : rh + 9)}" font-size="9" fill="${c2.up ? vCol.line : vCol.neg}" text-anchor="middle">${c2.up ? 'B' : 'S'}</text>`; });
+      out.innerHTML = `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Hh}" style="min-width:${Math.min(W, 760)}px">${g}</svg></div>`;
+      note.textContent = EN ? `The last ${C2.length} columns (of ${cols.length}), daily closes; X up, O down. B, S: a column beyond the previous one of its kind (double-top buy, double-bottom sell). No time axis: a column can be days or months.`
+        : `${C2.length} cột gần nhất (của ${cols.length}), giá đóng cửa nến ngày; X tăng, O giảm. B, S: vượt đỉnh hoặc thủng đáy của cột cùng chiều trước đó (double-top buy, double-bottom sell). Không có trục thời gian: một cột có thể là vài ngày hay vài tháng.`;
+      $('pnfBox').oninput = e => { view.box = +e.target.value || 2; viewRender(); }; $('pnfRev').oninput = e => { view.rev = +e.target.value || 3; viewRender(); }; return;
+    }
+    if (t === 'eqv') {   // Equivolume: each bar as wide as its volume, as tall as its range
+      const B2 = rows.slice(-80); if (B2.length < 10) return need(0, 'Chưa đủ dữ liệu.');
+      const W = 760, Hh = 320, vs = B2.reduce((a, r) => a + r.v, 0) || 1, hi = Math.max(...B2.map(r => r.h)), lo = Math.min(...B2.map(r => r.l)), Y = v => 10 + (hi - v) / (hi - lo || 1) * (Hh - 40);
+      let x = 50, g = '';
+      for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; g += `<line x1="50" x2="${W}" y1="${Y(v)}" y2="${Y(v)}" stroke="${vCol.grid}"/><text x="46" y="${Y(v) + 4}" font-size="10" fill="${vCol.text}" text-anchor="end">${fmtP(v)}</text>`; }
+      B2.forEach((r, k) => { const w = (W - 50) * r.v / vs, up = r.c >= (k ? B2[k - 1].c : r.o);
+        g += `<rect x="${x.toFixed(1)}" y="${Y(r.h).toFixed(1)}" width="${Math.max(0.5, w - 0.5).toFixed(1)}" height="${Math.max(0.5, Y(r.l) - Y(r.h)).toFixed(1)}" fill="${up ? fade(vCol.bar, 0.55) : fade(vCol.neg, 0.55)}" stroke="${up ? vCol.bar : vCol.neg}" stroke-width="0.5"><title>${esc(fmtDate(r.t))} · ${fmtVol(r.v)}</title></rect>`; x += w; });
+      out.innerHTML = `<svg viewBox="0 0 ${W} ${Hh}">${g}</svg>`;
+      note.textContent = tr('80 nến gần nhất. Bề rộng mỗi hộp theo khối lượng, chiều cao theo biên độ cao – thấp; xanh: đóng cửa cao hơn nến trước. Hộp rộng và thấp = khối lượng lớn nhưng giá không đi (cung cầu giằng co); hộp hẹp và cao = giá đi dễ.'); return;
+    }
+    if (t === 'fwd') {   // forward returns after any marker on the chart, with episode counts
+      const src = state.out.filter(o => o.inst.on && o.out.some(x => x.kind === 'marks') && o.out.find(x => x.kind === 'marks').marks.length);
+      if (!src.length) return need(0, 'Thêm một chỉ báo có đánh dấu (mẫu nến, phân kỳ, quy tắc ba MA, …) để xem lợi suất sau tín hiệu.');
+      const sel = Math.min(view.fwdSrc || 0, src.length - 1);
+      opts.innerHTML = `<label>${tr('Tín hiệu')} <select id="fwdSrc">${src.map((o, i) => `<option value="${i}"${i === sel ? ' selected' : ''}>${esc(o.inst.name || o.d.label(o.p))}</option>`).join('')}</select></label>`;
+      $('fwdSrc').onchange = e => { view.fwdSrc = +e.target.value; viewRender(); };
+      const M = src[sel].out.find(x => x.kind === 'marks').marks, n = rows.length, H2 = [5, 21, 63];
+      const block = dir => { const ms = M.filter(m => (m.dir || 0) === dir && rows[m.i]); if (!ms.length) return '';
+        let ep = 0, last = -1e9; for (const m of ms) { if (m.i - last > 10) ep++; last = m.i; }
+        const cells = H2.map(h => { const r = ms.filter(m => m.i + h < n).map(m => rows[m.i + h].c / rows[m.i].c - 1); if (!r.length) return '<td colspan="4">—</td>';
+          const mu = r.reduce((a, b) => a + b, 0) / r.length, sd = Math.sqrt(r.reduce((a, b) => a + (b - mu) ** 2, 0) / Math.max(1, r.length - 1)), base = (() => { let s2 = 0, c2 = 0; for (let i = 0; i + h < n; i++) { s2 += rows[i + h].c / rows[i].c - 1; c2++; } return s2 / c2; })();
+          return `<td>${pct1(mu)}</td><td>${pct1(base)}</td><td>${Math.round(r.filter(x => x > 0).length / r.length * 100)}%</td><td>±${(2 * sd / Math.sqrt(Math.max(1, ep)) * 100).toFixed(1)}%</td>`; }).join('');
+        return `<tr><td>${dir > 0 ? tr('Tăng ▲') : dir < 0 ? tr('Giảm ▼') : '•'}</td><td>${ms.length}</td><td>${ep}</td>${cells}</tr>`; };
+      out.innerHTML = `<div style="overflow-x:auto"><table class="pattab"><tr><th></th><th>${tr('Tín hiệu')}</th><th>${tr('Đợt')}</th>${H2.map(h => `<th colspan="4">${h} ${tr('nến')}: ${tr('TB')} · ${tr('mọi ngày')} · ${tr('% tăng')} · MDE</th>`).join('')}</tr>${block(1)}${block(-1)}${block(0)}</table></div>`;
+      note.textContent = tr('Lợi suất sau tín hiệu 5, 21, 63 nến so với lợi suất của mọi ngày cùng độ dài. "Đợt": tín hiệu cách nhau hơn 10 nến tính là một đợt mới; các tín hiệu dồn dập trong một đợt không độc lập. MDE ≈ 2 × độ lệch chuẩn ÷ √số đợt: chênh lệch nhỏ hơn mức này chưa phân biệt được với may rủi.'); return;
+    }
+  }
+  $('viewBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); $('viewDlg').showModal(); viewRender(); });
+  $('viewTabs').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; view.tab = b.dataset.v; safeSet('pt-ta-view', view.tab); viewRender(); });
   // Named indicator sets and chart layouts, kept in this browser (pt-ta-tpl)
   const tplGet = () => { try { const t = JSON.parse(safeGet('pt-ta-tpl') || '{}'); return { inds: t.inds || {}, lays: t.lays || {} }; } catch (e) { return { inds: {}, lays: {} }; } };
   function tplRender() {
