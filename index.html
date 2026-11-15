@@ -130,6 +130,12 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .pattab th { color: var(--muted); font-weight: 500; white-space: nowrap; } .pattab td { white-space: nowrap; }
 .pattab tr[data-pid] { cursor: pointer; } .pattab tr[data-pid]:hover td, .pattab tr.on td { background: var(--mist); }
 .patpick { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
+.prbox { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 11px; } .prbox input { font-size: 11px; padding: 1px 2px; width: 112px; }
+.prbox button { font-size: 11px; padding: 1px 6px; } #prPick[aria-pressed="true"] { background: var(--accent); color: var(--white); }
+.prres { border: 1px solid var(--line); border-radius: 4px; padding: 5px; margin-bottom: 4px; font-size: 11px; cursor: pointer; } .prres:hover, .prres.on { background: var(--mist); }
+.prres .lv { font-variant-numeric: tabular-nums; margin-top: 2px; }
+.tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .patpick span { flex: 1; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
 .ctx.replaying > .chips, .ctx.replaying > #drawStyle { display: none !important; }
 /* full screen: the chart row alone */
@@ -474,7 +480,10 @@ tbody tr[data-i]:hover { background: var(--panel); }
       </section>
       <section data-w="si"><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
       <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
-      <section data-w="pat"><h3>Mô hình giá</h3><div id="patBody"></div></section>
+      <section data-w="pat"><h3>Mô hình giá</h3>
+        <div class="prbox" id="prBox"><span class="k">Giai đoạn</span><input type="date" id="prFrom" aria-label="Từ ngày"><span>–</span><input type="date" id="prTo" aria-label="Đến ngày">
+          <button type="button" id="prPick" title="Bấm hai điểm trên biểu đồ: đầu và cuối giai đoạn">Chọn trên biểu đồ</button><button type="button" id="prClear" aria-label="Bỏ giai đoạn" title="Bỏ giai đoạn: xem toàn bộ lịch sử">×</button></div>
+        <div id="prOut"></div><div id="patBody"></div></section>
     </aside>
   </div>
 
@@ -1232,6 +1241,36 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Giai đoạn => Period
+Từ ngày => From
+Đến ngày => To
+Chọn trên biểu đồ => Pick on chart
+Bấm hai điểm trên biểu đồ: đầu và cuối giai đoạn => Click two points on the chart: start and end of the period
+Bỏ giai đoạn: xem toàn bộ lịch sử => Clear the period: whole history
+Bỏ giai đoạn => Clear period
+toàn bộ lịch sử => whole history
+Chọn giai đoạn ở trên (ngày hoặc hai điểm trên biểu đồ) để xem mô hình khớp nhất, tỷ lệ đạt và mục tiêu, cắt lỗ; để trống là toàn bộ lịch sử. => Choose a period above (dates or two points on the chart) for the best-matching patterns, their hit rate, target and stop; leave it empty for the whole history.
+Không có mô hình nào khớp giai đoạn này ở ba khung sóng. => No pattern fits this period at the three swing scales.
+Lịch sử mã này: => This symbol's record:
+lần, đạt mục tiêu => times, target reached
+chạm cắt lỗ => stop hit
+(ít mẫu) => (few cases)
+Chưa có lần phá vỡ nào trong lịch sử mã này => No breakout of this kind in this symbol's record
+Phá vỡ lên trên => Break above
+Phá vỡ xuống dưới => Break below
+thất bại: giá vượt đỉnh, đáy của mô hình trước khi phá vỡ => failed: price passed the pattern's extreme before breaking out
+không phá vỡ trong thời hạn => no breakout in time
+khớp => match
+phủ => covers
+giai đoạn => of the period
+đang mở => still open
+không có mô hình rõ => no clear pattern
+Dòng thời gian => Timeline
+theo vùng đang xem => in the visible range
+thất bại => failed
+không phá vỡ => no breakout
+Độ khớp: đỉnh, đáy nằm sát hình mẫu, phần giá nằm trong hình và (với mô hình đường) số lần chạm đường. => Match: how close the highs and lows sit to the ideal shape, how much of the price stays inside it, and (for line patterns) how many swings touch the lines.
+Dòng thời gian theo vùng biểu đồ đang xem: kéo, thu phóng để đổi giai đoạn. => The timeline follows the visible part of the chart: scroll or zoom to change the period.
 Thêm lại bảng đã đóng => Bring back a closed widget
 + Thêm bảng… => + Add widget…
 Đóng bảng phụ => Close the side panel
@@ -4975,7 +5014,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const PAT_SCALE = [[3, 'sóng ngắn'], [7, 'sóng vừa'], [15, 'sóng dài']];
   const pat = { on: safeGet('pt-ta-pat') === '1', shown: [], live: [], stats: null, statKey: '', ver: 0, pick: null };   // pick: {id, i} a past breakout on show
   function patATR(R) {
-    const n = R.c.length, a = new Array(n).fill(null); let rma = null;   // Wilder's ATR(14) for (let i = 1; i < n; i++) { const tr = Math.max(R.h[i] - R.l[i], Math.abs(R.h[i] - R.c[i - 1]), Math.abs(R.l[i] - R.c[i - 1])); rma = rma == null ? tr : (rma * 13 + tr) / 14; a[i] = rma; }
+    const n = R.c.length, a = new Array(n).fill(null); let rma = null;   // Wilder's ATR(14)
+    for (let i = 1; i < n; i++) { const tr = Math.max(R.h[i] - R.l[i], Math.abs(R.h[i] - R.c[i - 1]), Math.abs(R.l[i] - R.c[i - 1])); rma = rma == null ? tr : (rma * 13 + tr) / 14; a[i] = rma; }
     a[0] = a[1]; return a;
   }
   function patSwings(R, k) {   // alternating swing highs and lows; equal swings in a row keep the more extreme
@@ -4992,28 +5032,36 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const patFit = P => { const n = P.length, mx = P.reduce((s, q) => s + q.i, 0) / n, my = P.reduce((s, q) => s + q.p, 0) / n;
     const b = P.reduce((s, q) => s + (q.i - mx) * (q.p - my), 0) / (P.reduce((s, q) => s + (q.i - mx) ** 2, 0) || 1); return i => my + b * (i - mx); };
   const patLine = (a, b) => i => a.p + (b.p - a.p) * (i - a.i) / ((b.i - a.i) || 1);
-  function patForms(S, e, A) {   // forms whose last swing is S[e]; A = ATR there
+  // Similarity, 0-100%: how close the swings sit to the ideal shape (0 at the detector's tolerance), how much of the price
+  // between the first and last swing stays inside the shape, and for line forms how many swings touch the lines (two
+  // highs and two lows always fit two lines exactly, so a fourth or sixth touch is what makes a line).
+  function patForms(S, e, A, R, whole) {   // forms whose last swing is S[e]; A = ATR there. whole: also two lines over ALL of S (a chosen period), tolerance only scored
     const out = [], near = (x, y, m = 0.6) => Math.abs(x - y) <= m * A;
+    const sc = (x, y, m = 0.6) => Math.max(0, 1 - Math.abs(x - y) / (m * A)), avg = a => a.reduce((s, v) => s + v, 0) / a.length;   // similarity terms
+    const inside = (a, b, hi, lo) => { let k = 0; for (let j = a; j <= b; j++) if (R.h[j] <= hi(j) + 0.25 * A && R.l[j] >= lo(j) - 0.25 * A) k++; return k / (b - a + 1); };
+    const box = W => { const hi = Math.max(...W.map(q => q.p)), lo = Math.min(...W.map(q => q.p)); return inside(W[0].i, W[W.length - 1].i, () => hi, () => lo); };
     if (e >= 4) {
       const [x1, y1, x2, y2, x3] = S.slice(e - 4, e + 1), top = x1.t === 'H', sg = top ? 1 : -1, neck = patLine(y1, y2);
       const deep = Math.min(sg * (x1.p - neck(x1.i)), sg * (x3.p - neck(x3.i))) >= 1.5 * A;
       if (near(x1.p, x2.p) && near(x2.p, x3.p) && near(x1.p, x3.p) && deep && near(y1.p, y2.p, 1))
-        out.push({ id: top ? 'ttop' : 'tbot', dir: -sg, swings: [x1, y1, x2, y2, x3], neck, stop: top ? Math.max(x1.p, x2.p, x3.p) : Math.min(x1.p, x2.p, x3.p), height: sg * (x2.p - neck(x2.i)) });
+        out.push({ id: top ? 'ttop' : 'tbot', dir: -sg, swings: [x1, y1, x2, y2, x3], neck, stop: top ? Math.max(x1.p, x2.p, x3.p) : Math.min(x1.p, x2.p, x3.p), height: sg * (x2.p - neck(x2.i)),
+          sim: (avg([sc(x1.p, x2.p), sc(x2.p, x3.p), sc(x1.p, x3.p), sc(y1.p, y2.p, 1)]) + box([x1, y1, x2, y2, x3])) / 2 });
       else if (sg * (x2.p - Math.max(sg * x1.p, sg * x3.p) * sg) >= A && near(x1.p, x3.p, 1.2) && deep && sg * (x2.p - neck(x2.i)) >= 2.5 * A)
-        out.push({ id: top ? 'hs' : 'ihs', dir: -sg, swings: [x1, y1, x2, y2, x3], neck, stop: x2.p, height: sg * (x2.p - neck(x2.i)) });
+        out.push({ id: top ? 'hs' : 'ihs', dir: -sg, swings: [x1, y1, x2, y2, x3], neck, stop: x2.p, height: sg * (x2.p - neck(x2.i)),
+          sim: (avg([sc(x1.p, x3.p, 1.2), Math.max(0, 1 - Math.abs((x2.i - x1.i) - (x3.i - x2.i)) / (x3.i - x1.i))]) + box([x1, y1, x2, y2, x3])) / 2 });   // shoulders level, head centred
     }
     if (e >= 2 && !out.length) {
       const [a, b, c] = S.slice(e - 2, e + 1), top = a.t === 'H', sg = top ? 1 : -1, mid = (a.p + c.p) / 2;
       if (near(a.p, c.p) && sg * (mid - b.p) >= 2 * A && c.i - a.i >= 6)
-        out.push({ id: top ? 'dtop' : 'dbot', dir: -sg, swings: [a, b, c], neck: () => b.p, stop: top ? Math.max(a.p, c.p) : Math.min(a.p, c.p), height: sg * (mid - b.p) });
+        out.push({ id: top ? 'dtop' : 'dbot', dir: -sg, swings: [a, b, c], neck: () => b.p, stop: top ? Math.max(a.p, c.p) : Math.min(a.p, c.p), height: sg * (mid - b.p), sim: (sc(a.p, c.p) + box([a, b, c])) / 2 });
     }
-    for (const m of [6, 5, 4]) {   // two lines over the last 4-6 swings: the widest window that fits
-      if (e < m - 1) break;
-      const W = S.slice(e - m + 1, e + 1), H = W.filter(s => s.t === 'H'), L = W.filter(s => s.t === 'L'); if (H.length < 2 || L.length < 2) continue;
+    const wins = (whole && e >= 6 ? [S.slice(0, e + 1)] : []).concat([6, 5, 4].filter(m => e >= m - 1).map(m => S.slice(e - m + 1, e + 1)));
+    for (const W of wins) {   // two lines over the last 4-6 swings: the widest window that fits
+      const all = W.length > 6, H = W.filter(s => s.t === 'H'), L = W.filter(s => s.t === 'L'); if (H.length < 2 || L.length < 2) continue;
       const up = patFit(H), lo = patFit(L), i0 = W[0].i, i1 = W[W.length - 1].i; if (i1 - i0 < 10) continue;
       const iu = H[0].i, il = L[0].i, is = Math.max(iu, il);   // each line from its own first touch; the height where both exist
       if (Math.min(H[H.length - 1].i - iu, L[L.length - 1].i - il) < 0.4 * (i1 - i0)) continue;   // a line on two close touches is an extrapolation, not a side
-      if (H.some(s => !near(s.p, up(s.i))) || L.some(s => !near(s.p, lo(s.i)))) continue;
+      if (!all && (H.some(s => !near(s.p, up(s.i))) || L.some(s => !near(s.p, lo(s.i))))) continue;
       const w0 = up(is) - lo(is), w1 = up(i1) - lo(i1); if (w0 <= A || w1 <= 0.5 * A) continue;
       const du = (up(i1) - up(i0)) / A, dl = (lo(i1) - lo(i0)) / A, flat = x => Math.abs(x) < 1, conv = w1 < 0.7 * w0, wide = w1 > 1.4 * w0;
       let id = null, dir = 0;
@@ -5026,7 +5074,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       else if (flat(du) && flat(dl)) id = 'rect';
       else if (!conv && !wide && du >= 1 && dl >= 1) id = 'chup';
       else if (!conv && !wide && du <= -1 && dl <= -1) id = 'chdn';
-      if (id) { out.push({ id, dir, swings: W, up, lo, i0, i1, iu, il, height: w0, lines: true }); break; }
+      if (id) { out.push({ id, dir, swings: W, up, lo, i0, i1, iu, il, height: w0, lines: true, sim: 0.4 * avg(H.map(s => sc(s.p, up(s.i))).concat(L.map(s => sc(s.p, lo(s.i))))) + 0.3 * inside(is, i1, up, lo) + 0.3 * Math.min(1, (W.length - 4) / 2) }); if (!all) break; }
     }
     return out;
   }
@@ -5058,13 +5106,14 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const R = { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }, A = patATR(R);
     const key = `${state.sym}|${state.tf}|${n}|${rows[0].t}`, live = [];
     const stats = pat.statKey === key ? null : {};
-    const seen = new Set();   // a breakout counted once, however many windows or scales saw it
+    const seen = new Set(), cand = stats ? [] : null;   // seen: a breakout counted once, however many windows or scales saw it; cand: every form, for the timeline
     for (const [k, lab] of PAT_SCALE) {
       const S = patSwings(R, k); if (S.length < 3) continue;
       for (let e = 2; e < S.length; e++) {
-        const forms = patForms(S, e, A[S[e].i]);
+        const forms = patForms(S, e, A[S[e].i], R);
         for (const f of forms) {
           const tr = patTrade(f, R, k);
+          if (cand) cand.push({ f, k, lab, tr, a: f.swings[0].i, b: f.swings[f.swings.length - 1].i });
           if (stats && tr.j != null && tr.st !== 'open' && !seen.has(f.id + tr.j)) {
             seen.add(f.id + tr.j); const s = stats[f.id] = stats[f.id] || { n: 0, tgt: 0, stop: 0, ret: 0, ev: [] };
             s.n++; s.ev.push({ f, k, lab, tr }); if (tr.st === 'target') s.tgt++; if (tr.st === 'stop') s.stop++; s.ret += tr.ret;
@@ -5075,25 +5124,83 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
         }
       }
     }
-    if (stats) { for (const s of Object.values(stats)) s.ev.sort((a, b) => a.tr.j - b.tr.j); pat.stats = stats; pat.statKey = key;
-      const p = pat.statKey.startsWith(`${state.sym}|${state.tf}|`) && pat.pick, ev = p && stats[p.id] && stats[p.id].ev; pat.pick = ev ? { id: p.id, i: Math.min(p.i, ev.length - 1) } : null; }
-    pat.live = live; patShow(); patList();
+    if (stats) { for (const s of Object.values(stats)) s.ev.sort((a, b) => a.tr.j - b.tr.j);
+      const same = pat.statKey.startsWith(`${state.sym}|${state.tf}|`), p = same && pat.pick, ev = p && stats[p.id] && stats[p.id].ev;
+      pat.pick = ev ? { id: p.id, i: Math.min(p.i, ev.length - 1) } : null; if (!same) pat.extra = null;
+      pat.stats = stats; pat.statKey = key; pat.cand = cand.slice(); pat.tl = patTimeline(cand); pat.prKey = ''; }
+    pat.R = R; pat.A = A;
+    pat.live = live; patShow(); patList(); patPeriodRun();
+  }
+  // Timeline: the forms that best describe each stretch of history. Longest x most similar first; a form joins when it
+  // overlaps the ones already taken by at most a fifth of its own span. What is left uncovered reads "no clear pattern".
+  function patTimeline(C) {
+    const out = [];
+    C.sort((x, y) => (y.b - y.a) * y.f.sim - (x.b - x.a) * x.f.sim);
+    for (const c of C) if (!out.some(o => Math.min(o.b, c.b) - Math.max(o.a, c.a) > 0.2 * (c.b - c.a))) out.push(c);
+    return out.sort((x, y) => x.a - y.a);
+  }
+  // ---- a chosen period: which forms fit it best, this stock's record for each, and the levels from here ----
+  function patPeriod() {   // [first, last] bar of the chosen period, or null
+    const f = $('prFrom').value, t = $('prTo').value, rows = state.rows; if (!f || !t || !rows.length) return null;
+    const [d0, d1] = f <= t ? [f, t] : [t, f]; let a = rows.findIndex(r => dayOf(r.t) >= d0), b = -1;
+    for (let i = rows.length - 1; i >= 0; i--) if (dayOf(rows[i].t) <= d1) { b = i; break; }
+    return a >= 0 && b - a >= 10 ? [a, b] : null;
+  }
+  function patProject(f, n) {   // a form not yet broken: the trigger, target and stop in each direction it can break
+    const L = n - 1;
+    if (f.lines) { const u = f.up(L), l = f.lo(L), h = f.height;
+      return [{ dir: 1, trig: u, target: u + h, stop: l }, { dir: -1, trig: l, target: l - h, stop: u }].filter(p => !f.dir || p.dir === f.dir); }
+    const nk = f.neck(L); return [{ dir: f.dir, trig: nk, target: nk + f.dir * f.height, stop: f.stop }];
+  }
+  function patPeriodRun() {
+    const pr = pat.on ? patPeriod() : null, key = pr ? `${pat.statKey}|${pr}` : '';
+    if (key === pat.prKey) return; pat.prKey = key; pat.prRes = [];
+    if (!pr || !pat.R) { $('prOut').innerHTML = ''; return; }
+    const [a, b] = pr, R = pat.R, A = pat.A, n = R.c.length, C = [];
+    for (const [k, lab] of PAT_SCALE) {   // the period's own swings, fitted as one form
+      const S = patSwings(R, k).filter(q => q.i >= a && q.i <= b); if (S.length < 3) continue;
+      for (const f of patForms(S, S.length - 1, A[S[S.length - 1].i], R, true)) C.push({ f, k, lab, tr: patTrade(f, R, k), a: f.swings[0].i, b: f.swings[f.swings.length - 1].i });
+    }
+    for (const c of pat.cand || []) if (c.a >= a && c.b <= b) C.push(c);   // and every form found inside it
+    const cover = c => Math.min(1, (c.b - c.a) / (b - a)), best = {};
+    for (const c of C) { c.cover = cover(c); c.score = c.f.sim * c.cover; if (!best[c.f.id] || c.score > best[c.f.id].score) best[c.f.id] = c; }
+    pat.prRes = Object.values(best).sort((x, y) => y.score - x.score).slice(0, 3);
+    for (const c of pat.prRes) if (c.tr.st === 'forming') c.tr = { ...c.tr, proj: patProject(c.f, n) };
+    pat.extra = pat.prRes[0] || null; patShow(); if (pat.extra) patZoom(pat.extra);
+    patPeriodList();
+  }
+  function patPeriodList() {
+    const rows = state.rows, S = pat.stats || {}, pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`, out = { target: 'đạt mục tiêu', stop: 'chạm cắt lỗ', time: 'hết thời hạn', open: 'đang mở' };
+    if (!pat.prRes.length) { $('prOut').innerHTML = '<div class="k" style="margin-bottom:6px">Không có mô hình nào khớp giai đoạn này ở ba khung sóng.</div>'; return; }
+    $('prOut').innerHTML = pat.prRes.map((c, i) => {
+      const s = S[c.f.id], rec = s ? `Lịch sử mã này: ${s.n} lần, đạt mục tiêu ${Math.round(s.tgt / s.n * 100)}%, chạm cắt lỗ ${Math.round(s.stop / s.n * 100)}%, LN TB ${pc(s.ret / s.n)}${s.n < 10 ? ' (ít mẫu)' : ''}` : 'Chưa có lần phá vỡ nào trong lịch sử mã này';
+      const t = c.tr, lv = t.proj ? t.proj.map(p => `${p.dir > 0 ? 'Phá vỡ lên trên' : 'Phá vỡ xuống dưới'} ${fmtP(p.trig)} → Mục tiêu ${fmtP(p.target)} · Cắt lỗ ${fmtP(p.stop)}`).join('<br>')
+        : t.j != null ? `${t.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[t.j].t)} → ${out[t.st] || ''}${t.x != null && t.st !== 'open' ? ' ' + fmtDate(rows[t.x].t) : ''} · Mục tiêu ${fmtP(t.target)} · Cắt lỗ ${fmtP(t.stop)}${t.st !== 'open' ? `, ${pc(t.ret)}` : ''}`
+        : t.st === 'void' ? 'thất bại: giá vượt đỉnh, đáy của mô hình trước khi phá vỡ' : 'không phá vỡ trong thời hạn';
+      return `<div class="prres${pat.extra === c ? ' on' : ''}" data-pr="${i}"><b>${esc(PAT_NAME[c.f.id])}</b> · khớp ${Math.round(c.f.sim * 100)}% · phủ ${Math.round(c.cover * 100)}% giai đoạn <span class="k">· ${esc(c.lab)}</span>`
+        + `<div class="lv">${lv}</div><div class="k">${rec}</div></div>`;
+    }).join('');
   }
   const patPicked = () => pat.pick && pat.stats && pat.stats[pat.pick.id] ? pat.stats[pat.pick.id].ev[pat.pick.i] : null;
-  function patShow() { const p = patPicked(); pat.shown = pat.live.flatMap(patShapes).concat(p && !pat.live.some(x => x.tr.j === p.tr.j && x.f.id === p.f.id) ? patShapes(p) : []); pat.ver++; }
+  function patShow() { const p = pat.extra || patPicked(); pat.shown = pat.live.flatMap(patShapes).concat(p && !pat.live.some(x => x.f === p.f || (x.tr.j != null && x.tr.j === p.tr.j && x.f.id === p.f.id)) ? patShapes(p) : []); pat.ver++; }
   function patZoom(x) {   // the form from its first swing to the end of its trade (or today)
-    const n = state.rows.length, i0 = x.f.swings[0].i, i1 = x.tr.x != null ? x.tr.x : n - 1, pad = Math.max(10, Math.round((i1 - i0) * 0.25));
+    const n = state.rows.length, i0 = x.f.swings[0].i, i1 = x.tr.x != null ? x.tr.x : x.tr.j != null || x.tr.st === 'forming' ? n - 1 : x.f.swings[x.f.swings.length - 1].i, pad = Math.max(10, Math.round((i1 - i0) * 0.25));
     chart.timeScale().setVisibleLogicalRange({ from: i0 - pad, to: Math.min(i1 + pad, n - 1 + pad) });
   }
   function patShapes({ f, k, lab, tr }) {   // pseudo-drawings in the page's own drawing styles
     const rows = state.rows, n = rows.length, P = (i, p) => ptAt(i, p), sw = f.swings, i0 = sw[0].i, i1 = sw[sw.length - 1].i;
     const end = tr.j != null ? tr.j : Math.min(n - 1 + Math.round((i1 - i0) * 0.3), i1 + (i1 - i0)), out = [];
-    const name = `${tr_(PAT_NAME[f.id])} · ${tr_(lab)}`;
+    const name = `${tr_(PAT_NAME[f.id])} · ${tr_(lab)} · ${Math.round(f.sim * 100)}%`;
     const seg = (a, b, pa, pb, c, ls, note) => out.push({ type: 'trend', pts: [P(a, pa), P(b, pb)], c, ls, nonum: true, note, w: 1.5 });
     if (f.lines) { seg(f.iu, end, f.up(f.iu), f.up(end), 'navy', 'solid', name); seg(f.il, end, f.lo(f.il), f.lo(end), 'navy', 'solid'); }
     else {
       for (let x = 0; x < sw.length - 1; x++) seg(sw[x].i, sw[x + 1].i, sw[x].p, sw[x + 1].p, 'grey', 'solid');
       const nk = sw[1]; seg(nk.i, end, f.neck(nk.i), f.neck(end), 'navy', 'dash', name);
+    }
+    if (tr.proj) for (const p of tr.proj) {   // not broken yet: where it triggers, and the target and stop beyond, drawn ahead of today
+      const a = n - 1, b = n - 1 + Math.max(10, Math.round((i1 - i0) / 2)), ar = p.dir > 0 ? '↑' : '↓';
+      seg(a, b, p.target, p.target, 'accent', 'dash', `${tr_('Mục tiêu')} ${ar} ${fmtP(p.target)}`);
+      seg(a, b, p.stop, p.stop, 'grey', 'dash', `${tr_('Cắt lỗ')} ${ar} ${fmtP(p.stop)}`);
     }
     if (tr.j != null) {   // after a breakout: target and stop, drawn forward from the breakout bar
       const a = tr.j, b = Math.max(tr.x != null ? tr.x : 0, tr.j + Math.max(8, Math.round((i1 - i0) / 2)));   // to the exit bar when there is one
@@ -5109,7 +5216,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (!pat.on) { $('patBody').innerHTML = '<span class="k">Bật nút Mô hình để tìm mô hình giá trên biểu đồ.</span>'; return; }
     const rows = state.rows, done = { target: ' · đã đạt mục tiêu', stop: ' · đã chạm cắt lỗ', time: ' · hết thời hạn' };
     const st = x => x.tr.st === 'forming' ? 'đang hình thành' : `${x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[x.tr.j].t)}${done[x.tr.st] || ''}`;
-    const now = pat.live.length ? pat.live.map((x, i) => `<div class="patrow" data-pi="${i}"><b>${esc(PAT_NAME[x.f.id])}</b> <span class="k">${esc(x.lab)}, ${x.f.swings[x.f.swings.length - 1].i - x.f.swings[0].i} nến</span>`
+    const now = pat.live.length ? pat.live.map((x, i) => `<div class="patrow" data-pi="${i}"><b>${esc(PAT_NAME[x.f.id])}</b> ${Math.round(x.f.sim * 100)}% <span class="k">${esc(x.lab)}, ${x.f.swings[x.f.swings.length - 1].i - x.f.swings[0].i} nến</span>`
       + `<div class="st">${esc(st(x))}${x.tr.j != null ? ` · Mục tiêu ${fmtP(x.tr.target)} · Cắt lỗ ${fmtP(x.tr.stop)}` : ''}</div></div>`).join('')
       : '<span class="k">Không có mô hình nào đang hình thành ở ba khung sóng.</span>';
     const S = pat.stats || {}, ids = Object.keys(S).sort((a, b) => S[b].n - S[a].n), p = patPicked(), pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`;
@@ -5117,21 +5224,48 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       + ids.map(id => { const s = S[id]; return `<tr data-pid="${id}"${p && pat.pick.id === id ? ' class="on"' : ''}><td>${esc(PAT_NAME[id])}</td><td>${s.n}</td><td>${Math.round(s.tgt / s.n * 100)}%</td><td>${Math.round(s.stop / s.n * 100)}%</td><td>${pc(s.ret / s.n)}</td></tr>`; }).join('') + '</table>'
       : '<span class="k">Chưa đủ lịch sử.</span>';
     const out = { target: 'đạt mục tiêu', stop: 'chạm cắt lỗ', time: 'hết thời hạn' };
-    const pick = p ? `<div class="patpick"><button type="button" data-act="prev" aria-label="Lần trước">‹</button><span><b>${esc(PAT_NAME[p.f.id])}</b> ${pat.pick.i + 1}/${S[pat.pick.id].ev.length} · ${esc(p.lab)} · `
+    const pick = p ? `<div class="patpick"><button type="button" data-act="prev" aria-label="Lần trước">‹</button><span><b>${esc(PAT_NAME[p.f.id])}</b> ${pat.pick.i + 1}/${S[pat.pick.id].ev.length} · ${Math.round(p.f.sim * 100)}% · ${esc(p.lab)} · `
       + `${p.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[p.tr.j].t)} → ${out[p.tr.st] || ''} ${fmtDate(rows[p.tr.x].t)}, ${pc(p.tr.ret)}</span>`
       + `<button type="button" data-act="next" aria-label="Lần sau">›</button><button type="button" data-act="close" aria-label="Bỏ chọn">×</button></div>` : '';
     const n = rows.length, span = n ? ` · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}, ${n} nến` : '';
-    $('patBody').innerHTML = now + `<h3 style="margin-top:8px">Lịch sử mã này <span class="k">${esc(TF_LABEL[state.tf])}${span}</span></h3>` + tab + pick
-      + (ids.length ? `<div class="pathelp k">Bấm một dòng để vẽ từng lần lên biểu đồ (‹ › để xem lần khác). Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). `
+    // timeline over the chosen period, else the whole history
+    const pr = patPeriod(), v0 = pr ? pr[0] : 0, v1 = pr ? pr[1] : n - 1;
+    const dm = t => typeof t === 'string' ? fmtDate(t).slice(3) : fmtDate(t).slice(0, 8), gapMin = 10;
+    const segs = (pat.tl || []).filter(c => c.b >= v0 && c.a <= v1), tl = []; let at = v0;
+    for (const c of segs) {
+      if (c.a - at > gapMin) tl.push(`<div class="tlrow gap"><span>${dm(rows[at].t)}–${dm(rows[c.a].t)}</span><span class="k">không có mô hình rõ</span></div>`);
+      const ti = pat.tl.indexOf(c), res = c.tr.j != null ? `${c.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${dm(rows[c.tr.j].t)}` : c.tr.st === 'void' ? 'thất bại' : c.tr.st === 'forming' ? 'đang hình thành' : 'không phá vỡ';
+      tl.push(`<div class="tlrow${pat.extra === c ? ' on' : ''}" data-ti="${ti}"><span>${dm(rows[c.a].t)}–${dm(rows[c.b].t)}</span><span><b>${esc(PAT_NAME[c.f.id])}</b> ${Math.round(c.f.sim * 100)}%`
+        + ` <span class="k">${esc(c.lab)} · ${esc(res)}</span></span></div>`);
+      at = Math.max(at, c.b);
+    }
+    if (n && v1 - at > gapMin) tl.push(`<div class="tlrow gap"><span>${dm(rows[at].t)}–${dm(rows[v1].t)}</span><span class="k">không có mô hình rõ</span></div>`);
+    const tlHtml = n ? `<h3 style="margin-top:8px">Dòng thời gian <span class="k">${dm(rows[v0].t)}–${dm(rows[v1].t)}${pr ? '' : ' · toàn bộ lịch sử'}</span></h3>` + tl.join('') : '';
+    $('patBody').innerHTML = now + tlHtml + `<h3 style="margin-top:8px">Lịch sử mã này <span class="k">${esc(TF_LABEL[state.tf])}${span}</span></h3>` + tab + pick
+      + (ids.length ? `<div class="pathelp k">Bấm một dòng để vẽ từng lần lên biểu đồ (‹ › để xem lần khác). Độ khớp: đỉnh, đáy nằm sát hình mẫu, phần giá nằm trong hình và (với mô hình đường) số lần chạm đường. Chọn giai đoạn ở trên (ngày hoặc hai điểm trên biểu đồ) để xem mô hình khớp nhất, tỷ lệ đạt và mục tiêu, cắt lỗ; để trống là toàn bộ lịch sử. Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). `
         + `Mục tiêu = chiều cao mô hình tính từ điểm phá vỡ; cắt lỗ = cạnh đối diện hoặc đỉnh, đáy của mô hình; chưa tính phí. Đổi khung nến (D, W, M) để xem giai đoạn khác.</div>` : '');
   }
+  for (const id of ['prFrom', 'prTo']) $(id).addEventListener('change', () => { patPeriodRun(); patList(); });
+  $('prClear').addEventListener('click', () => { $('prFrom').value = $('prTo').value = ''; pat.extra = null; patPeriodRun(); patShow(); patList(); });
+  $('prPick').addEventListener('click', () => { pat.prPick = pat.prPick ? 0 : 1; $('prPick').setAttribute('aria-pressed', String(!!pat.prPick)); });
+  chart.subscribeClick(p => {   // two clicks on the chart: start, then end of the period
+    if (!pat.prPick || p.logical == null || !state.rows.length) return;
+    const rows = state.rows, d = dayOf(rows[Math.max(0, Math.min(rows.length - 1, Math.round(p.logical)))].t);
+    if (pat.prPick === 1) { $('prFrom').value = d; $('prTo').value = ''; pat.prPick = 2; return; }
+    $('prTo').value = d; pat.prPick = 0; $('prPick').setAttribute('aria-pressed', 'false');
+    if (!pat.on) $('patBtn').click(); else { patPeriodRun(); patList(); }
+  });
+  $('prOut').addEventListener('click', e => { const r = e.target.closest('[data-pr]'); if (!r) return; const c = pat.prRes[+r.dataset.pr];
+    pat.pick = null; pat.extra = c; patShow(); patPeriodList(); patList(); patZoom(c); });
   $('patBtn').addEventListener('click', () => { pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; pat.pick = null; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
   $('patBody').addEventListener('click', e => {   // a live pattern: bring it into view; a row of the record: draw its breakouts one at a time
     const r = e.target.closest('[data-pi]'), t = e.target.closest('[data-pid]'), b = e.target.closest('[data-act]');
     if (r) { const x = pat.live[+r.dataset.pi]; if (x) patZoom(x); return; }
-    if (t) { const ev = pat.stats[t.dataset.pid].ev; pat.pick = { id: t.dataset.pid, i: ev.length - 1 }; }   // the latest first
+    const tl = e.target.closest('[data-ti]');
+    if (tl) { const c = pat.tl[+tl.dataset.ti]; pat.pick = null; pat.extra = pat.extra === c ? null : c; patShow(); patList(); if (pat.extra) patZoom(c); return; }
+    if (t) { pat.extra = null; const ev = pat.stats[t.dataset.pid].ev; pat.pick = { id: t.dataset.pid, i: ev.length - 1 }; }   // the latest first
     else if (b && pat.pick) { const m = pat.stats[pat.pick.id].ev.length;
-      if (b.dataset.act === 'close') pat.pick = null; else pat.pick.i = (pat.pick.i + (b.dataset.act === 'next' ? 1 : m - 1)) % m; }
+      pat.extra = null; if (b.dataset.act === 'close') pat.pick = null; else pat.pick.i = (pat.pick.i + (b.dataset.act === 'next' ? 1 : m - 1)) % m; }
     else return;
     patShow(); patList(); const p = patPicked(); if (p) patZoom(p);
   });
