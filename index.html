@@ -153,6 +153,9 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .scrbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; } .scrbar input[type=number] { width: 56px; } #scrQ { width: 90px; text-transform: uppercase; }
 .scrwrap { max-height: 62vh; overflow: auto; } .scrtab th { position: sticky; top: 0; background: var(--white); cursor: pointer; } .scrtab tr[data-c] { cursor: pointer; } .scrtab tr[data-c]:hover td { background: var(--mist); }
 .scrtab td.up { color: var(--good); } .scrtab td.dn { color: var(--bad); }
+.bias { padding: 6px 8px; border-radius: 6px; background: var(--mist); margin-bottom: 6px; font-size: 12px; } .bias.up { border-left: 3px solid var(--good); } .bias.dn { border-left: 3px solid var(--bad); }
+.bias .st { font-size: 11px; color: var(--muted); margin-top: 2px; } .gr.sell { color: var(--white); background: var(--bad); border-color: var(--bad); }
+.biaschip.up .pdot { background: var(--good); border-color: var(--good); } .biaschip.dn .pdot { background: var(--bad); border-color: var(--bad); } .biaschip .pdot { border-color: var(--muted); }
 .planrow .lv { font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; } .planrow .up { color: var(--good); } .planrow .dn { color: var(--bad); }
 .cf { color: var(--accent); }
 .viewtabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 8px 0 4px; } .viewtabs button { font-size: 12px; }
@@ -439,6 +442,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <select id="layoutSel" aria-label="Bố cục" title="Bố cục: nhiều biểu đồ cạnh nhau"><option value="1">1 biểu đồ</option><option value="2">2 biểu đồ</option><option value="2v">2 biểu đồ (dọc)</option><option value="3">3 biểu đồ</option><option value="4">4 biểu đồ</option></select>
     <button type="button" id="dockBtn" aria-pressed="false" title="Bảng phụ: danh mục theo dõi, thông tin mã, sổ lệnh">Bảng phụ</button>
     <button type="button" id="patBtn" aria-pressed="false" title="Tự nhận diện mô hình giá ở ba khung sóng (ngắn, vừa, dài) và thống kê của chính mã này">Mô hình</button>
+    <button type="button" id="sigBtn" title="Bảng tín hiệu: kỳ vọng, điểm vào, cắt lỗ, mục tiêu cho danh mục theo dõi, VN30 hoặc VN100">Bảng tín hiệu</button>
     <button type="button" id="rpBtn" aria-pressed="false" title="Phát lại nến từ một phiên trong quá khứ (Alt+R)">Phát lại</button>
     <span class="bsep" aria-hidden="true"></span>
     <span class="bn" title="Bước 6: xuất">6</span>
@@ -447,6 +451,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
   <div class="ctx">
     <div class="chips" id="chips" role="group" aria-label="Chỉ báo đang dùng"></div>
     <div class="chips" id="patChips" role="group" aria-label="Mô hình giá đang hình thành" hidden></div>
+    <button type="button" class="pchip biaschip" id="biasChip" hidden title="Kỳ vọng theo xu hướng, động lượng và cấu trúc đỉnh, đáy; bấm để xem lý do"></button>
     <div id="drawStyle" class="drawstyle" role="group" aria-label="Định dạng hình" hidden>
           <span class="lbl">Nét</span>
           <span class="dscols" id="dsCols"></span>
@@ -480,6 +485,17 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <div id="editor" hidden></div>
   </div>
   <dialog id="cmdk" class="cmdk"><input id="cmdkIn" type="search" placeholder="Tìm mã, chỉ báo hoặc lệnh…" aria-label="Tìm mã, chỉ báo hoặc lệnh"><div id="cmdkList" role="listbox"></div></dialog>
+  <dialog id="sigDlg" class="scrdlg">
+    <div class="scrhead"><h3>Bảng tín hiệu <span id="sigInfo" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
+    <div class="scrbar">
+      <select id="sigU" aria-label="Danh sách mã"><option value="wl">Danh mục theo dõi</option><option value="VN30">VN30</option><option value="VN100">VN100</option></select>
+      <label class="ed-chk"><input type="checkbox" id="sigLive"> Chỉ mã có tín hiệu</label>
+      <select id="sigSide" aria-label="Chiều"><option value="">Mua và bán</option><option value="1">Chỉ mua</option><option value="-1">Chỉ bán</option></select>
+      <button type="button" id="sigRun" class="primary">Quét</button><span id="sigProg" class="k"></span>
+    </div>
+    <div class="scrwrap" data-notr><table class="pattab scrtab" id="sigTab"></table></div>
+    <p class="k" style="font-size:11px;margin:6px 0 0">Tín hiệu kỹ thuật tự động từ giá (nến ngày), không phải khuyến nghị đầu tư. Mỗi mã: kỳ vọng (7 phiếu xu hướng, động lượng, đỉnh đáy), rồi cách tính có kết quả lịch sử tốt nhất trên chính mã đó; "có tín hiệu" = tín hiệu trong 3 phiên gần nhất. Đánh giá "Mạnh" khi có tín hiệu, lịch sử từ +0.1R mỗi lần trên 8 lần trở lên và cùng chiều kỳ vọng. Cổ phiếu không bán khống được: "Bán" là thoát hàng. Bấm mã để mở biểu đồ với kế hoạch đó; chuông để đặt cảnh báo giá ở điểm vào.</p>
+  </dialog>
   <dialog id="viewDlg" class="scrdlg">
     <div class="scrhead"><h3>Phân tích thống kê <span id="viewSym" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
     <div class="seg viewtabs" id="viewTabs" role="group" aria-label="Chọn phân tích">
@@ -1341,6 +1357,74 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Cảnh báo ở cắt lỗ và mục tiêu của lệnh đang chạy => Alerts at the running trade's stop and target
+tín hiệu đã phát => signal fired
+Tín hiệu đã phát => Signal fired
+vào => entry
+cắt lỗ => stop
+mục tiêu => target
+Cổ phiếu Việt Nam không bán khống được: "Bán" là bán phần đang giữ, hoặc không mua mới. => Vietnamese stocks cannot be sold short: "Sell" means sell what you hold, or do not buy.
+Thủng hỗ trợ => Support breakdown
+Quay đầu ở kháng cự => Rejection at resistance
+Hồi lên Fibonacci 61.8% => Fibonacci 61.8% rally (short)
+Chạm dải Bollinger trên => Upper Bollinger band
+RSI cắt xuống 70 => RSI crosses down 70
+MACD cắt xuống Signal => MACD crosses down Signal
+Thủng đường bạn vẽ => Break below your line
+Mốc so sánh: bán bất kỳ ngày nào => Baseline: sell on any day
+Giá cắt lên => Price crosses up
+Giá cắt xuống => Price crosses down
+Bán theo => Sell following
+đóng cửa dưới => close below
+bán quanh => sell near
+hồi lên => rally to
+đang dưới đường => below the line
+Kỳ vọng tăng => Expected up
+Kỳ vọng giảm => Expected down
+Trung tính => Neutral
+điểm => score
+sau => after
+lần đọc tương tự => similar readings
+21 nến sau tăng => up 21 bars later
+Cả hai => Both
+Bán khống => Short
+Giá trên MA50 => Price above MA50
+Giá trên MA200 => Price above MA200
+MA50 đi lên => MA50 rising
+MACD trên Signal => MACD above Signal
+Tăng trong 20 nến => Up over 20 bars
+Đỉnh, đáy cao dần => Higher highs and lows
+Giá dưới MA50 => Price below MA50
+Giá dưới MA200 => Price below MA200
+MA50 đi xuống => MA50 falling
+MACD dưới Signal => MACD below Signal
+Giảm trong 20 nến => Down over 20 bars
+Đỉnh, đáy thấp dần => Lower highs and lows
+trên 50 => above 50
+dưới 50 => below 50
+Kỳ vọng theo xu hướng, động lượng và cấu trúc đỉnh, đáy; bấm để xem lý do => Expected direction from trend, momentum and swing structure; click for the reasons
+Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược. => The sell side uses the buy rules on the price series turned upside down.
+Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm. => Expected direction: 7 votes (price vs MA50 and MA200; MA50 slope; RSI vs 50; MACD vs Signal; 20 bars; swings) added up; +3 and above leans up, −3 and below leans down.
+Bảng tín hiệu: kỳ vọng, điểm vào, cắt lỗ, mục tiêu cho danh mục theo dõi, VN30 hoặc VN100 => Signals board: expected direction, entry, stop and target for the watchlist, VN30 or VN100
+Bảng tín hiệu => Signals board
+Danh sách mã => Symbol list
+Chỉ mã có tín hiệu => Signals only
+Chiều => Side
+Mua và bán => Buy and sell
+Chỉ mua => Buy only
+Chỉ bán => Sell only
+Quét => Scan
+xong => done
+Không tải được danh sách mã. => Could not load the symbol list.
+Kỳ vọng => Expected
+Cách tính => Method
+Vùng vào => Entry zone
+Mạnh => Strong
+Vừa => Medium
+Ngược kỳ vọng => Against the lean
+Chờ tín hiệu => Wait for a signal
+Cảnh báo khi giá đóng cửa vượt điểm vào => Alert when the close crosses the entry
+Tín hiệu kỹ thuật tự động từ giá (nến ngày), không phải khuyến nghị đầu tư. => Automatic technical signals from daily prices, not investment advice.
 Phân kỳ và failure swing => Divergence and failure swing
 Dao động (0 RSI 14, 1 MACD histogram, 2 Stochastic %K, 3 OBV) => Oscillator (0 RSI 14, 1 MACD histogram, 2 Stochastic %K, 3 OBV)
 Nến hai bên đỉnh, đáy => Bars each side of a swing
@@ -5024,13 +5108,20 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     }
     return o;
   }
-  function planBuild() {
-    const rows = state.rows, n = rows.length; if (n < 80) return [];
-    const R = { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }, A = patATR(R), K = 5, S = patSwings(R, K);
-    const L1 = n - 1, c = R.c[L1], a = A[L1], out = [], twoR = (e, st) => e + 2 * (e - st);
-    // known swings, oldest first, as of bar i; nearest resistance above / support below a price among the last 40 of each
-    const near = (arr, x, up) => { let b = null; for (let q = arr.length - 1; q >= Math.max(0, arr.length - 40); q--) { const p = arr[q].p; if (up ? p > x * 1.002 && (b == null || p < b) : p < x && (b == null || p > b)) b = p; } return b; };
-    const tgtAbove = (Hs, e, st) => near(Hs, e + (e - st), true) ?? twoR(e, st);   // the next resistance at least one risk above, else 2R
+  // planCore: the methods on any bars. dir -1 mirrors the bars (highs become negated lows) and runs the same long rules,
+  // so a short setup and its record come from the very logic that was tested long; levels are flipped back at the end.
+  // ctx: { out: indicators on the chart, draws: drawings, pat: the focused pattern } — empty for the signals board.
+  const PLAN_NAME = { srb: ['Vượt kháng cự', 'Thủng hỗ trợ'], srs: ['Bật từ hỗ trợ', 'Quay đầu ở kháng cự'], fib: ['Hồi Fibonacci 61.8%', 'Hồi lên Fibonacci 61.8%'],
+    bb: ['Chạm dải Bollinger dưới', 'Chạm dải Bollinger trên'], rsi: ['RSI cắt lên 30', 'RSI cắt xuống 70'], macd: ['MACD cắt lên Signal', 'MACD cắt xuống Signal'],
+    line: ['Vượt đường bạn vẽ', 'Thủng đường bạn vẽ'], atr: ['Mốc so sánh: mua bất kỳ ngày nào', 'Mốc so sánh: bán bất kỳ ngày nào'] };
+  const PLAN_NOTE = { 'đóng cửa trên': 'đóng cửa dưới', 'mua quanh': 'bán quanh', 'hồi về': 'hồi lên', 'đang trên đường': 'đang dưới đường', 'giá hiện tại': 'giá hiện tại', 'khi có tín hiệu': 'khi có tín hiệu' };
+  function planCore(rows, ctx, dir) {
+    const n = rows.length; if (n < 80) return [];
+    const sg = dir < 0 ? -1 : 1, R = sg > 0 ? { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }
+      : { o: rows.map(r => -r.o), h: rows.map(r => -r.l), l: rows.map(r => -r.h), c: rows.map(r => -r.c) };
+    const A = patATR(R), K = 5, S = patSwings(R, K), L1 = n - 1, c = R.c[L1], a = A[L1], out = [], twoR = (e, st) => e + 2 * (e - st);
+    const near = (arr, x, up) => { let b = null; for (let q = arr.length - 1; q >= Math.max(0, arr.length - 40); q--) { const p = arr[q].p; if (up ? p > x + Math.abs(x) * 0.002 && (b == null || p < b) : p < x && (b == null || p > b)) b = p; } return b; };
+    const tgtAbove = (Hs, e, st) => near(Hs, e + (e - st), true) ?? twoR(e, st);
     const stopBelow = (Ls, e, at) => { const sp = near(Ls, e, false); return sp != null && e - sp <= 4 * at ? sp - 0.25 * at : e - 2 * at; };
     const sigB = [], sigBo = [], sigF = []; let p = 0, fibUsed = -1; const H = [], Lw = [];
     for (let i = K + 1; i < n; i++) {
@@ -5041,56 +5132,85 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (h.i > l.i && fibUsed !== h.i) { const d = h.p - l.p;
         if (d > 2 * A[i] && R.l[i] <= h.p - 0.618 * d && R.c[i] > h.p - 0.786 * d) { fibUsed = h.i; sigF.push({ i, e: R.c[i], s: l.p - 0.25 * A[i], t: h.p }); } }
     }
-    const Hn = S.filter(q => q.t === 'H'), Ln = S.filter(q => q.t === 'L');   // every swing confirmed by the last bar
-    const push = (id, name, src, lv, sigs, note, extra) => out.push({ id, name, src, ...lv, note, rec: sigs ? planSim(R, sigs) : null, live: sigs ? sigs.some(g => g.i >= L1 - 3) : false, ...extra });
-    // support / resistance
+    const Hn = S.filter(q => q.t === 'H'), Ln = S.filter(q => q.t === 'L');
+    const nm = id => (PLAN_NAME[id] || [id, id])[sg > 0 ? 0 : 1], nt = x => sg > 0 ? x : PLAN_NOTE[x] || x;
+    const push = (id, name, src, lv, sigs, note, extra) => out.push({ id: id + (sg < 0 ? '-s' : ''), dir: sg, name, src, ...lv, note: nt(note), rec: sigs ? planSim(R, sigs) : null, live: sigs ? sigs.some(g => g.i >= L1 - 3) : false, sig: sigs && sigs.length && sigs[sigs.length - 1].i >= L1 - 3 ? { ...sigs[sigs.length - 1] } : null, ...extra });   // sig: the live signal's own levels
     const res = near(Hn, c, true), sup = near(Ln, c, false);
-    if (res != null) { const st = stopBelow(Ln, res, a); push('srb', 'Vượt kháng cự', 'tự động', { e: res, s: st, t: tgtAbove(Hn, res, st) }, sigB, 'đóng cửa trên'); }
-    if (sup != null) push('srs', 'Bật từ hỗ trợ', 'tự động', { e: sup, s: sup - 0.5 * a, t: tgtAbove(Hn, sup, sup - 0.5 * a) }, sigBo, 'mua quanh');
-    // Fibonacci: the user's drawing if there is one, else the last up-leg
-    const fd = [...draw.list].reverse().find(d => d.type === 'fib' && d.pts[1]), lastH = Hn[Hn.length - 1], lastL = [...Ln].reverse().find(q => lastH && q.i < lastH.i);
-    const fl = fd ? [Math.min(fd.pts[0].p, fd.pts[1].p), Math.max(fd.pts[0].p, fd.pts[1].p)] : lastL && lastH ? [lastL.p, lastH.p] : null;
-    if (fl && fl[1] - fl[0] > 2 * a) { const d = fl[1] - fl[0]; push('fib', 'Hồi Fibonacci 61.8%', fd ? 'hình bạn vẽ' : 'tự động', { e: fl[1] - 0.618 * d, s: fl[0] - 0.25 * a, t: fl[1] }, sigF, 'mua quanh', { t2: fl[1] + 0.618 * d }); }
-    // indicators on the chart
-    const on = state.out.filter(o => o.inst.on), lineOf = o => (o.out.find(x => x.values && x.kind !== 'hist') || {}).values;
+    if (res != null) { const st = stopBelow(Ln, res, a); push('srb', nm('srb'), 'tự động', { e: res, s: st, t: tgtAbove(Hn, res, st) }, sigB, 'đóng cửa trên'); }
+    if (sup != null) push('srs', nm('srs'), 'tự động', { e: sup, s: sup - 0.5 * a, t: tgtAbove(Hn, sup, sup - 0.5 * a) }, sigBo, 'mua quanh');
+    const fd = [...(ctx.draws || [])].reverse().find(d => d.type === 'fib' && d.pts[1]), lastH = Hn[Hn.length - 1], lastL = [...Ln].reverse().find(q => lastH && q.i < lastH.i);
+    const fl = fd ? [Math.min(sg * fd.pts[0].p, sg * fd.pts[1].p), Math.max(sg * fd.pts[0].p, sg * fd.pts[1].p)] : lastL && lastH ? [lastL.p, lastH.p] : null;
+    if (fl && fl[1] - fl[0] > 2 * a) { const d = fl[1] - fl[0]; push('fib', nm('fib'), fd ? 'hình bạn vẽ' : 'tự động', { e: fl[1] - 0.618 * d, s: fl[0] - 0.25 * a, t: fl[1] }, sigF, 'mua quanh', { t2: fl[1] + 0.618 * d }); }
+    const on = (ctx.out || []).filter(o => o.inst.on), lineOf = o => ((o.out.find(x => x.values && x.kind !== 'hist') || {}).values || []).map(v => v == null ? null : sg * v);
     const ma = on.find(o => ['sma', 'ema', 'wma', 'hma', 'vwma', 'dema', 'tema', 'lsma', 'evwma'].includes(o.d.id) && !o.inst.mtf);
     if (ma) { const v = lineOf(ma), sigs = []; for (let i = 1; i < n; i++) if (v[i] != null && v[i - 1] != null && A[i] && R.c[i - 1] < v[i - 1] && R.c[i] >= v[i]) { const e = R.c[i], st = e - 1.5 * A[i]; sigs.push({ i, e, s: st, t: twoR(e, st) }); }
-      const m = v[L1]; if (m != null) { const st = m - 1.5 * a; push('ma', `Giá và ${ma.inst.name || ma.d.label(ma.p)}`, 'chỉ báo trên biểu đồ', { e: m, s: st, t: twoR(m, st) }, sigs, c > m ? 'hồi về' : 'đóng cửa trên'); } }
+      const m = v[L1]; if (m != null) { const st = m - 1.5 * a; push('ma', `${sg > 0 ? 'Giá cắt lên' : 'Giá cắt xuống'} ${ma.inst.name || ma.d.label(ma.p)}`, 'chỉ báo trên biểu đồ', { e: m, s: st, t: twoR(m, st) }, sigs, c > m ? 'hồi về' : 'đóng cửa trên'); } }
     const bb = on.find(o => o.d.id === 'bb');
-    if (bb) { const [U, Lo] = bb.out.filter(x => x.values).map(x => x.values), sigs = [];
+    if (bb) { let [U, Lo] = bb.out.filter(x => x.values).map(x => x.values); if (sg < 0) [U, Lo] = [Lo.map(v => v == null ? null : -v), U.map(v => v == null ? null : -v)]; const sigs = [];
       for (let i = 1; i < n; i++) if (Lo[i] != null && A[i] && R.l[i] <= Lo[i] && R.c[i] > Lo[i]) sigs.push({ i, e: R.c[i], s: Lo[i] - A[i], t: (U[i] + Lo[i]) / 2 });
-      if (Lo[L1] != null) push('bb', 'Chạm dải Bollinger dưới', 'chỉ báo trên biểu đồ', { e: Lo[L1], s: Lo[L1] - a, t: (U[L1] + Lo[L1]) / 2 }, sigs, 'mua quanh'); }
+      if (Lo[L1] != null) push('bb', nm('bb'), 'chỉ báo trên biểu đồ', { e: Lo[L1], s: Lo[L1] - a, t: (U[L1] + Lo[L1]) / 2 }, sigs, 'mua quanh'); }
     const trl = on.find(o => ['supertrend', 'psar', 'chandelier'].includes(o.d.id));
-    if (trl) { const v = (trl.out.find(x => x.values) || {}).values || [], sigs = [];
-      for (let i = 1; i < n; i++) if (v[i] != null && v[i - 1] != null && R.c[i - 1] <= v[i - 1] && R.c[i] > v[i] && R.c[i] > v[i] * 1.001) { const e = R.c[i]; sigs.push({ i, e, s: v[i], t: twoR(e, v[i]) }); }
-      const tv = v[L1]; if (tv != null) { const e = c > tv ? c : tv * 1.001, st = c > tv ? tv : tv - a; push('trail', `Theo ${trl.inst.name || trl.d.label(trl.p)}`, 'chỉ báo trên biểu đồ', { e, s: st, t: twoR(e, st) }, sigs, c > tv ? 'đang trên đường' : 'đóng cửa trên'); } }
-    const osc = (id, name, cross) => { const o = on.find(x => x.d.id === id); if (!o) return; const sigs = [];
+    if (trl) { const v = lineOf(trl), sigs = [];
+      for (let i = 1; i < n; i++) if (v[i] != null && v[i - 1] != null && R.c[i - 1] <= v[i - 1] && R.c[i] > v[i] + Math.abs(v[i]) * 0.001) { const e = R.c[i]; sigs.push({ i, e, s: v[i], t: twoR(e, v[i]) }); }
+      const tv = v[L1]; if (tv != null) { const e = c > tv ? c : tv + Math.abs(tv) * 0.001, st = c > tv ? tv : tv - a; push('trail', `${sg > 0 ? 'Theo' : 'Bán theo'} ${trl.inst.name || trl.d.label(trl.p)}`, 'chỉ báo trên biểu đồ', { e, s: st, t: twoR(e, st) }, sigs, c > tv ? 'đang trên đường' : 'đóng cửa trên'); } }
+    const osc = (id, cross) => { const o = on.find(x => x.d.id === id); if (!o) return; const sigs = [];
       for (let i = 1; i < n; i++) if (A[i] && cross(o, i)) { const e = R.c[i], st = e - 2 * A[i]; sigs.push({ i, e, s: st, t: twoR(e, st) }); }
-      push(id, name, 'chỉ báo trên biểu đồ', { e: c, s: c - 2 * a, t: twoR(c, c - 2 * a) }, sigs, 'khi có tín hiệu'); };
-    osc('rsi', 'RSI cắt lên 30', (o, i) => { const v = lineOf(o); return v[i - 1] != null && v[i - 1] < 30 && v[i] >= 30; });
-    osc('macd', 'MACD cắt lên Signal', (o, i) => { const L = o.out.filter(x => x.values && x.kind !== 'hist'), m = L[0] && L[0].values, g = L[1] && L[1].values;
+      push(id, nm(id), 'chỉ báo trên biểu đồ', { e: c, s: c - 2 * a, t: twoR(c, c - 2 * a) }, sigs, 'khi có tín hiệu'); };
+    osc('rsi', (o, i) => { const v = (o.out.find(x => x.values) || {}).values; return v && v[i - 1] != null && (sg > 0 ? v[i - 1] < 30 && v[i] >= 30 : v[i - 1] > 70 && v[i] <= 70); });
+    osc('macd', (o, i) => { const L = o.out.filter(x => x.values && x.kind !== 'hist').map(x => x.values.map(v => v == null ? null : sg * v)), m = L[0], g = L[1];
       return m && g && m[i - 1] != null && g[i - 1] != null && m[i - 1] < g[i - 1] && m[i] >= g[i]; });
-    // the user's drawn line, the pattern in focus, then ATR
-    const dl = [...draw.list].reverse().find(d => LINE_T.includes(d.type)), lv = dl ? lineAt(dl) : null;
-    if (lv != null && Math.abs(lv / c - 1) < 0.3) push('line', 'Vượt đường bạn vẽ', 'hình bạn vẽ', { e: lv, s: lv - 2 * a, t: twoR(lv, lv - 2 * a) }, null, 'đóng cửa trên');   // drawn now: no record
-    const pf = pat.on ? patFocus() : null, pp = pf && pf.tr.st === 'forming' ? patProject(pf.f, n).find(q => q.dir > 0) : null;
-    if (pp) { const r0 = (pat.stats || {})[pf.f.id]; out.push({ id: 'pat', name: PAT_NAME[pf.f.id], src: 'mô hình', e: pp.trig, s: pp.stop, t: pp.target, note: 'đóng cửa trên',
+    const dl = [...(ctx.draws || [])].reverse().find(d => LINE_T.includes(d.type)), lv0 = dl ? lineAt(dl) : null, lv = lv0 == null ? null : sg * lv0;
+    if (lv != null && Math.abs(lv / c - 1) < 0.3) push('line', nm('line'), 'hình bạn vẽ', { e: lv, s: lv - 2 * a, t: twoR(lv, lv - 2 * a) }, null, 'đóng cửa trên');
+    const pf = ctx.pat, pp = pf && pf.tr.st === 'forming' ? patProject(pf.f, n).find(q => q.dir === sg) : null;
+    if (pp) { const r0 = (pat.stats || {})[pf.f.id]; out.push({ id: 'pat' + (sg < 0 ? '-s' : ''), dir: sg, name: PAT_NAME[pf.f.id], src: 'mô hình', e: sg * pp.trig, s: sg * pp.stop, t: sg * pp.target, note: nt('đóng cửa trên'),
       rec: r0 ? { n: r0.n, tgt: r0.tgt, stop: r0.stop, ret: r0.ret, r: null } : null, live: false }); }
-    { const st = c - 2 * a; push('atr', 'Mốc so sánh: mua bất kỳ ngày nào', '2 ATR cắt lỗ, lời 2R', { e: c, s: st, t: twoR(c, st) }, Array.from({ length: Math.floor((n - 20) / 5) }, (_, q) => { const i = 20 + q * 5, e = R.c[i]; return { i, e, s: e - 2 * A[i], t: e + 4 * A[i] }; }), 'giá hiện tại'); }
-    // confluence: other methods with a level within half an ATR
-    const LEVELS = new Set(['srb', 'srs', 'fib', 'ma', 'bb', 'trail', 'line', 'pat']);   // ATR-sized plans share the price itself: no agreement in that
-    for (const x of out) x.with = !LEVELS.has(x.id) ? [] : out.filter(y => y !== x && LEVELS.has(y.id) && [y.e, y.s, y.t].some(v => [x.e, x.s, x.t].some(w => Math.abs(v - w) <= 0.3 * a))).map(y => y.name);
-    const score = x => x.rec && x.rec.n >= 8 ? (x.rec.r != null ? x.rec.r / x.rec.n : x.rec.ret / x.rec.n * 10) : -9;
-    return out.sort((x, y) => score(y) - score(x));
+    { const st = c - 2 * a; push('atr', nm('atr'), '2 ATR cắt lỗ, lời 2R', { e: c, s: st, t: twoR(c, st) }, Array.from({ length: Math.floor((n - 20) / 5) }, (_, q) => { const i = 20 + q * 5, e = R.c[i]; return { i, e, s: e - 2 * A[i], t: e + 4 * A[i] }; }), 'giá hiện tại'); }
+    const LEVELS = new Set(['srb', 'srs', 'fib', 'ma', 'bb', 'trail', 'line', 'pat']);
+    for (const x of out) { if (sg < 0) { for (const k of ['e', 's', 't', 't2']) if (x[k] != null) x[k] = -x[k]; if (x.sig) for (const k of ['e', 's', 't']) x.sig[k] = -x.sig[k]; } x.atr = a; }   // back to real prices
+    for (const x of out) { const b = x.id.replace(/-s$/, ''); x.with = !LEVELS.has(b) ? [] : out.filter(y => y !== x && LEVELS.has(y.id.replace(/-s$/, '')) && [y.e, y.s, y.t].some(v => [x.e, x.s, x.t].some(w => Math.abs(v - w) <= 0.3 * a))).map(y => y.name); }
+    return out;
+  }
+  const planScore = x => x.rec && x.rec.n >= 8 ? (x.rec.r != null ? x.rec.r / x.rec.n : x.rec.ret / x.rec.n * 10) : -9;
+  const canShort = sym => /^VN30F/.test(sym) || isCrypto(sym) || GLOBAL.has(sym);
+  function planBuild() {
+    const ctx = { out: state.out, draws: draw.list, pat: pat.on ? patFocus() : null };
+    return planCore(state.rows, ctx, 1).concat(planCore(state.rows, ctx, -1)).sort((x, y) => planScore(y) - planScore(x));
+  }
+  // Expected direction: trend (price vs MA50, MA200, the MA50's slope), momentum (RSI14 vs 50, MACD vs signal, 20-bar
+  // change) and structure (the last two confirmed swing highs and lows). Each votes +1 or −1; ±3 and beyond is a lean.
+  // The same score is run back over the history, so the verdict carries how this stock behaved after such readings.
+  function biasSeries(rows) {
+    const n = rows.length, c = rows.map(r => r.c), R = { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c };
+    const m50 = SMA(c, 50), m200 = SMA(c, 200), rsi = RSI(c, 14), e12 = EMA(c, 12), e26 = EMA(c, 26), mac = zip(e12, e26, (x, y) => x - y), sig = EMA(mac.map(v => v ?? null), 9), S = patSwings(R, 5), sc = N(n), why = [];
+    let p = 0; const H = [], L = [];
+    for (let i = 0; i < n; i++) {
+      while (p < S.length && S[p].i + 5 <= i) { (S[p].t === 'H' ? H : L).push(S[p]); p++; }
+      if (m50[i] == null || rsi[i] == null || sig[i] == null || i < 20) continue;
+      const v = [c[i] > m50[i] ? 1 : -1, m200[i] == null ? 0 : c[i] > m200[i] ? 1 : -1, m50[i - 10] == null ? 0 : m50[i] > m50[i - 10] ? 1 : -1, rsi[i] > 50 ? 1 : -1, mac[i] > sig[i] ? 1 : -1, c[i] > c[i - 20] ? 1 : -1,
+        H.length > 1 && L.length > 1 ? (H[H.length - 1].p > H[H.length - 2].p && L[L.length - 1].p > L[L.length - 2].p ? 1 : H[H.length - 1].p < H[H.length - 2].p && L[L.length - 1].p < L[L.length - 2].p ? -1 : 0) : 0];
+      sc[i] = v.reduce((x, y) => x + y, 0); if (i === n - 1) why.push(...v);
+    }
+    return { sc, why, rsi: rsi[n - 1] };
+  }
+  function biasOf(rows) {
+    const n = rows.length; if (n < 120) return null;
+    const { sc, why, rsi } = biasSeries(rows), s = sc[n - 1]; if (s == null) return null;
+    const lean = s >= 3 ? 1 : s <= -3 ? -1 : 0, H = 21, f = [];   // history: forward 21-bar return after the same lean
+    for (let i = 0; i + H < n; i++) if (sc[i] != null && (lean ? (lean > 0 ? sc[i] >= 3 : sc[i] <= -3) : Math.abs(sc[i]) < 3)) f.push(rows[i + H].c / rows[i].c - 1);
+    let base = 0, bn = 0; for (let i = 0; i + H < n; i++) { base += rows[i + H].c / rows[i].c - 1; bn++; }
+    const up = f.length ? f.filter(x => x > 0).length / f.length : null, avg = f.length ? f.reduce((a, b) => a + b, 0) / f.length : null;
+    const lab = ['Giá trên MA50', 'Giá trên MA200', 'MA50 đi lên', `RSI ${rsi.toFixed(0)} trên 50`, 'MACD trên Signal', 'Tăng trong 20 nến', 'Đỉnh, đáy cao dần'], labN = ['Giá dưới MA50', 'Giá dưới MA200', 'MA50 đi xuống', `RSI ${rsi.toFixed(0)} dưới 50`, 'MACD dưới Signal', 'Giảm trong 20 nến', 'Đỉnh, đáy thấp dần'];
+    return { s, lean, pro: why.map((v, k) => v > 0 ? lab[k] : null).filter(Boolean), con: why.map((v, k) => v < 0 ? labN[k] : null).filter(Boolean), up, avg, n: f.length, base: bn ? base / bn : 0 };
   }
   function planRun() {
     const rows = state.rows; if (!rows.length) return;
     const key = [state.sym, state.tf, rows.length, rows[rows.length - 1].c, JSON.stringify(state.inds.map(i => [i.type, i.on, i.p])), draw.list.length, pat.on && pat.focus].join('|');
-    if (key !== plan.key) { plan.key = key; plan.rows = planBuild(); if (plan.sel && !plan.rows.some(x => x.id === plan.sel)) plan.sel = null; planShowLines(); }
+    if (key !== plan.key) { plan.key = key; plan.rows = planBuild();
+      if (sigS.pending && sigS.pending.sym === state.sym && plan.rows.some(x => x.id === sigS.pending.id)) { plan.sel = sigS.pending.id; sigS.pending = null; planShowLines(); } plan.bias = INTRA.has(state.tf) && rows.length < 300 ? null : biasOf(rows); biasChip(); if (plan.sel && !plan.rows.some(x => x.id === plan.sel)) plan.sel = null; planShowLines(); }
     planList();
   }
   function planShowLines() {
-    const x = plan.rows.find(r => r.id === plan.sel), n = state.rows.length; plan.shown = [];
+    const x0 = plan.rows.find(r => r.id === plan.sel), x = x0 && x0.sig ? { ...x0, ...x0.sig, t2: null, note: 'tín hiệu đã phát' } : x0, n = state.rows.length; plan.shown = [];   // a live plan: the levels of the signal that fired
     if (x) { const P = (i, p) => ptAt(i, p), a = Math.max(0, n - 31), b = n + 3, pc = v => `${v >= x.e ? '+' : ''}${((v / x.e - 1) * 100).toFixed(1)}%`;
       const seg = (p, c, ls, note) => plan.shown.push({ type: 'trend', pts: [P(a, p), P(b, p)], c, ls, nonum: true, note, w: 1.5, lab0: true });
       seg(x.e, 'navy', 'solid', `${tr('Vào lệnh')} ${fmtP(x.e)} (${tr(x.note)}) · ${tr(x.name)} · ${tr('Lời/lỗ')} ${((x.t - x.e) / (x.e - x.s)).toFixed(1)}`);
@@ -5098,21 +5218,41 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       seg(x.s, 'grey', 'dash', `${tr('Cắt lỗ')} ${fmtP(x.s)} (${pc(x.s)})`); }
     patShow();
   }
+  function biasChip() {
+    const b = plan.bias, el = $('biasChip'); el.hidden = !b; if (!b) return;
+    el.className = `pchip biaschip ${b.lean > 0 ? 'up' : b.lean < 0 ? 'dn' : ''}`;
+    el.innerHTML = `<span class="pdot"></span><b>${tr(b.lean > 0 ? 'Kỳ vọng tăng' : b.lean < 0 ? 'Kỳ vọng giảm' : 'Trung tính')}</b><span class="k">${b.s > 0 ? '+' : ''}${b.s}/7</span>`;
+  }
+  $('biasChip').addEventListener('click', () => { if ($('dock').hidden) setDock(true); const sec = document.querySelector('#dock > section[data-w="plan"]'); if (sec) { if (sec.hidden) { $('dockAdd').value = 'plan'; $('dockAdd').dispatchEvent(new Event('change')); } if (sec.classList.contains('folded')) sec.querySelector('[data-wact="fold"]').click(); planList(); sec.scrollIntoView({ block: 'nearest' }); } });
   function planSelect(id) { if (plan.sel === id) return; plan.sel = id; planShowLines(); planList(); }
+  // the expected direction as a few words and its record, shared by the plan widget, the chip and the board
+  function biasHtml(b, full) {
+    if (!b) return `<span class="k">${tr('Chưa đủ dữ liệu.')}</span>`;
+    const [cls, word] = b.lean > 0 ? ['up', 'Kỳ vọng tăng'] : b.lean < 0 ? ['dn', 'Kỳ vọng giảm'] : ['', 'Trung tính'], pc = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`;
+    const rec = b.n ? `${tr('Lịch sử')}: ${tr('sau')} ${b.n} ${tr('lần đọc tương tự')}, ${tr('21 nến sau tăng')} ${Math.round(b.up * 100)}%, ${tr('TB')} ${pc(b.avg)} (${tr('mọi ngày')} ${pc(b.base)})` : '';
+    return `<div class="bias ${cls}"><b>${tr(word)}</b> <span class="k">${tr('điểm')} ${b.s > 0 ? '+' : ''}${b.s}/7</span>`
+      + (full ? `<div class="st">${b.pro.length ? `▲ ${b.pro.map(x => esc(tr(x))).join(' · ')}` : ''}${b.con.length ? `<br>▼ ${b.con.map(x => esc(tr(x))).join(' · ')}` : ''}</div><div class="st">${rec}</div>` : '') + '</div>';
+  }
   function planList() {
     const sec = document.querySelector('#dock > section[data-w="plan"]'); if (!sec || $('dock').hidden || sec.hidden) return;
     $('planSym').textContent = state.sym; const rows = state.rows, n = rows.length, pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`;
     if (!plan.rows.length) { $('planBody').innerHTML = `<span class="k">${tr('Chưa đủ dữ liệu.')}</span>`; return; }
+    const shortOk = canShort(state.sym), dirF = plan.dir || 'all', L = plan.rows.filter(x => dirF === 'all' || (dirF === 'long' ? x.dir > 0 : x.dir < 0));
     const verdict = r => !r || !r.n ? ['', 'chưa có lần nào'] : r.n < 8 ? ['', 'ít mẫu'] : (r.r != null ? r.r / r.n : r.ret / r.n * 10) >= 0.1 ? ['good', 'hiệu quả'] : (r.r != null ? r.r / r.n : r.ret) < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
-    $('planBody').innerHTML = `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
-      + plan.rows.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s));
-        return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}"><b>${esc(x.name)}</b> <span class="k">${esc(x.src)}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}</span>` : ''}`
-          + `<div class="lv">${tr('Vào')} ${fmtP(x.e)} <span class="k">(${esc(x.note)})</span> · ${tr('Cắt lỗ')} ${fmtP(x.s)} <span class="dn">${pc(x.s, x.e)}</span> · ${tr('Mục tiêu')} ${fmtP(x.t)} <span class="up">${pc(x.t, x.e)}</span> · ${tr('Lời/lỗ')} <b${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</b></div>`
+    $('planBody').innerHTML = biasHtml(plan.bias, true)
+      + `<div class="seg newstabs" id="planDir">${[['all', 'Cả hai'], ['long', 'Mua'], ['short', shortOk ? 'Bán khống' : 'Bán']].map(([k, t]) => `<button type="button" data-pd="${k}" aria-pressed="${dirF === k}">${tr(t)}</button>`).join('')}</div>`
+      + `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
+      + (!shortOk && dirF !== 'long' ? `<div class="pathelp k" style="margin:0 0 4px">${tr('Cổ phiếu Việt Nam không bán khống được: "Bán" là bán phần đang giữ, hoặc không mua mới.')}</div>` : '')
+      + L.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="gr ok">${tr('Mua')}</span>` : `<span class="gr sell">${tr(shortOk ? 'Bán khống' : 'Bán')}</span>`;
+        return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}">${side} <b>${esc(tr(x.name))}</b> <span class="k">${esc(tr(x.src))}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}${x.sig ? ' ' + fmtDate(state.rows[x.sig.i].t).slice(0, 5) : ''}</span>` : ''}`
+          + (x.sig ? `<div class="lv">${tr('Tín hiệu đã phát')}: ${tr('vào')} ${fmtP(x.sig.e)} · ${tr('cắt lỗ')} ${fmtP(x.sig.s)} · ${tr('mục tiêu')} ${fmtP(x.sig.t)}</div>` : '')
+          + `<div class="lv">${tr('Vào')} ${fmtP(x.e)} <span class="k">(${esc(tr(x.note))})</span> · ${tr('Cắt lỗ')} ${fmtP(x.s)} <span class="dn">${pc(x.s, x.e)}</span> · ${tr('Mục tiêu')} ${fmtP(x.t)} <span class="up">${pc(x.t, x.e)}</span> · ${tr('Lời/lỗ')} <b${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</b></div>`
           + `<div class="st">${r && r.n ? `${tr('Lịch sử')}: ${r.n} ${tr('lần')}, ${tr('tới mục tiêu')} ${Math.round(r.tgt / r.n * 100)}%, ${tr('dính cắt lỗ')} ${Math.round(r.stop / r.n * 100)}%, ${r.r != null ? `${tr('TB')} ${(r.r / r.n >= 0 ? '+' : '') + (r.r / r.n).toFixed(2)}R` : `${tr('TB')} ${pc(1 + r.ret / r.n, 1)}`} · ` : ''}<span class="vd ${k}">${tr(v)}</span>`
           + `${x.with.length ? ` · <span class="cf">${tr('trùng với')} ${esc(x.with.map(w => tr(w)).join(', '))}</span>` : ''}</div></div>`; }).join('')
-      + `<details class="pathelp k"><summary>${tr('Cách tính')}</summary>${tr('Chỉ mua (giá lên). Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến, quá hạn thì ra ở giá đóng cửa. Chưa tính phí. Lời/lỗ dưới 1.5 tô đỏ. Chỉ báo dao động (RSI, MACD) chỉ chọn thời điểm vào; cắt lỗ 2 ATR, mục tiêu 2 lần rủi ro.')}</details>`;
+      + `<details class="pathelp k"><summary>${tr('Cách tính')}</summary>${tr('Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược. Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến, quá hạn thì ra ở giá đóng cửa. Chưa tính phí. Lời/lỗ dưới 1.5 tô đỏ. Chỉ báo dao động (RSI, MACD) chỉ chọn thời điểm vào; cắt lỗ 2 ATR, mục tiêu 2 lần rủi ro. Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm.')}</details>`;
   }
-  $('planBody').addEventListener('click', e => { const r = e.target.closest('[data-plan]'); if (!r) return; planSelect(plan.sel === r.dataset.plan ? null : r.dataset.plan); });
+  $('planBody').addEventListener('click', e => { const d = e.target.closest('[data-pd]'); if (d) { plan.dir = d.dataset.pd; planList(); return; }
+    const r = e.target.closest('[data-plan]'); if (!r) return; planSelect(plan.sel === r.dataset.plan ? null : r.dataset.plan); });
   // Object tree: every drawing of this symbol and interval, to select, hide, lock or delete one
   function objTree() {
     const sec = document.querySelector('#dock > section[data-w="obj"]'); if (!sec || $('dock').hidden || sec.hidden) return;
@@ -6487,6 +6627,66 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   $('viewBtn').addEventListener('click', () => { $('moreMenu').removeAttribute('open'); $('viewDlg').showModal(); viewRender(); });
   $('viewTabs').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; view.tab = b.dataset.v; safeSet('pt-ta-view', view.tab); viewRender(); });
+  // ---------- signals board ----------
+  // Each symbol of the chosen list: its daily bars (kept for the session), the expected direction, the automatic plans
+  // both ways, and the one to act on: a live signal (last 3 sessions) from a method with a good record on that stock,
+  // preferring the expected direction; else the best-record setup in that direction, marked "wait".
+  const sigS = { cache: new Map(), rows: [], busy: false, pending: null };
+  async function sigList(u) {
+    if (u === 'wl') return wl.list.slice();
+    const j = await getJSON(`${FINFO}/stocks?q=indexCode:${u}&size=200&fields=code`); return (j.data || []).map(x => x.code).sort();
+  }
+  function sigEval(sym, rows) {
+    const px = rows[rows.length - 1].c, b = biasOf(rows), lean = b ? b.lean : 0, ok = x => planScore(x) >= 0.1;
+    const P = planCore(rows, {}, 1).concat(planCore(rows, {}, -1)).filter(x => !/^atr/.test(x.id) && (x.live || Math.abs(x.e / px - 1) <= Math.max(0.1, 3 * x.atr / px)));   // a setup far from the price is not a plan for now
+    const liveG = P.filter(x => x.live && ok(x)).sort((x, y) => (y.dir === lean) - (x.dir === lean) || planScore(y) - planScore(x));
+    const pick = liveG[0] || P.filter(x => x.dir === (lean || 1) && ok(x)).sort((x, y) => planScore(y) - planScore(x))[0] || P.filter(x => x.dir === (lean || 1)).sort((x, y) => planScore(y) - planScore(x))[0];
+    if (!pick) return { sym, px: rows[rows.length - 1].c, b };
+    const live = liveG[0] === pick, grade = !live ? 'Chờ tín hiệu' : pick.dir === lean ? 'Mạnh' : lean === 0 ? 'Vừa' : 'Ngược kỳ vọng';
+    const lv = live && pick.sig ? { ...pick, e: pick.sig.e, s: pick.sig.s, t: pick.sig.t, when: rows[pick.sig.i].t } : pick;
+    return { sym, px, b, x: lv, live, grade, rank: (live ? 10 : 0) + (pick.dir === lean ? 5 : 0) + planScore(pick) };
+  }
+  async function sigScan() {
+    if (sigS.busy) return; sigS.busy = true; $('sigRun').disabled = true;
+    try {
+      const list = await sigList($('sigU').value); sigS.rows = []; let done = 0;
+      const one = async sym => {
+        try { let rows = sigS.cache.get(sym); if (!rows) { rows = await loadDaily(sym); sigS.cache.set(sym, rows); }
+          if (rows.length >= 120) sigS.rows.push(sigEval(sym, rows)); } catch (e) { /* a symbol that fails is left out */ }
+        $('sigProg').textContent = `${++done}/${list.length}`; if (done % 5 === 0) sigRender();
+      };
+      for (let k = 0; k < list.length; k += 5) await Promise.all(list.slice(k, k + 5).map(one));   // five at a time
+      $('sigProg').textContent = tr('xong'); sigRender();
+    } catch (e) { $('sigTab').innerHTML = `<tr><td>${tr('Không tải được danh sách mã.')}</td></tr>`; }
+    finally { sigS.busy = false; $('sigRun').disabled = false; }
+  }
+  function sigRender() {
+    const side = +$('sigSide').value || 0, liveOnly = $('sigLive').checked, pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`;
+    const L = sigS.rows.filter(r => r.x && (!side || r.x.dir === side) && (!liveOnly || r.live)).sort((a, b) => b.rank - a.rank);
+    $('sigInfo').textContent = `${L.length} ${EN ? 'symbols' : 'mã'} · ${L.filter(r => r.live).length} ${tr('có tín hiệu')}`;
+    $('sigTab').innerHTML = `<tr><th>${tr('Mã')}</th><th>${tr('Giá')}</th><th>${tr('Kỳ vọng')}</th><th>${tr('Tín hiệu')}</th><th>${tr('Cách tính')}</th><th>${tr('Vùng vào')}</th><th>${tr('Cắt lỗ')}</th><th>${tr('Mục tiêu')}</th><th>${tr('Lời/lỗ')}</th><th>${tr('Lịch sử')}</th><th>${tr('Đánh giá')}</th><th></th></tr>`
+      + L.map(r => { const x = r.x, b = r.b, sh = canShort(r.sym), z = 0.25 * x.atr, lo = Math.min(x.e - z, x.e + z), hi = Math.max(x.e - z, x.e + z), rr = (x.t - x.e) / (x.e - x.s), rec = x.rec;
+        const sideTxt = x.dir > 0 ? tr('Mua') : tr(sh ? 'Bán khống' : 'Bán'), gcls = r.grade === 'Mạnh' ? 'good' : r.grade === 'Ngược kỳ vọng' ? 'bad' : '';
+        return `<tr data-s="${esc(r.sym)}" data-p="${esc(x.id)}"><td><b>${esc(r.sym)}</b></td><td>${fmtP(r.px)}</td><td class="${b && b.lean > 0 ? 'up' : b && b.lean < 0 ? 'dn' : ''}">${b ? `${tr(b.lean > 0 ? 'Tăng' : b.lean < 0 ? 'Giảm' : 'Trung tính')} ${b.s > 0 ? '+' : ''}${b.s}` : ''}</td>`
+          + `<td class="${x.dir > 0 ? 'up' : 'dn'}">${r.live ? '● ' : ''}${sideTxt}${x.when ? ` <span class="k">${fmtDate(x.when).slice(0, 5)}</span>` : ''}</td><td>${esc(tr(x.name))}</td><td>${fmtP(lo)}–${fmtP(hi)}</td><td>${fmtP(x.s)} <span class="k">${pc(x.s, x.e)}</span></td><td>${fmtP(x.t)} <span class="k">${pc(x.t, x.e)}</span></td>`
+          + `<td${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</td><td>${rec && rec.n ? `${rec.n} · ${(rec.r / rec.n >= 0 ? '+' : '') + (rec.r / rec.n).toFixed(2)}R` : ''}</td><td class="vd ${gcls}">${tr(r.grade)}</td>`
+          + `<td><button type="button" class="mini" data-bell="1" title="${tr(r.live ? 'Cảnh báo ở cắt lỗ và mục tiêu của lệnh đang chạy' : 'Cảnh báo khi giá đóng cửa vượt điểm vào')}">🔔</button></td></tr>`; }).join('');
+  }
+  $('sigBtn').addEventListener('click', () => { $('sigDlg').showModal(); if (!sigS.rows.length) sigScan(); });
+  $('sigRun').addEventListener('click', () => { sigS.rows = []; sigScan(); });
+  for (const id of ['sigLive', 'sigSide']) $(id).addEventListener('change', sigRender);
+  $('sigU').addEventListener('change', () => { sigS.rows = []; sigScan(); });
+  $('sigTab').addEventListener('click', e => {
+    const tr0 = e.target.closest('tr[data-s]'); if (!tr0) return; const r = sigS.rows.find(q => q.sym === tr0.dataset.s); if (!r || !r.x) return;
+    if (e.target.closest('[data-bell]')) {   // a price alert at the entry, to Telegram as well when the access code is set
+      // waiting: one alert at the entry; a live signal: the open trade's stop and target
+      const x = r.x, mk = (op, lvl, k) => ({ id: Date.now().toString(36) + k, sym: r.sym, tf: null, a: 'close', op, b: +lvl.toFixed(4), labels: {}, on: true, prev: r.px - lvl, made: Date.now(), tg: !!ssiCode() });
+      loadAlerts();
+      if (r.live) alerts.push(mk(x.dir > 0 ? 'dn' : 'up', x.s, 's'), mk(x.dir > 0 ? 'up' : 'dn', x.t, 't')); else alerts.push(mk(x.dir > 0 ? 'up' : 'dn', x.e, 'e'));
+      saveAlerts(); e.target.textContent = '✓'; return;
+    }
+    sigS.pending = { sym: r.sym, id: r.x.id }; $('sigDlg').close(); if (state.tf !== 'D') { $('tfSel').value = 'D'; $('tfSel').dispatchEvent(new Event('change')); } loadSymbol(r.sym);
+  });
   // Named indicator sets and chart layouts, kept in this browser (pt-ta-tpl)
   const tplGet = () => { try { const t = JSON.parse(safeGet('pt-ta-tpl') || '{}'); return { inds: t.inds || {}, lays: t.lays || {} }; } catch (e) { return { inds: {}, lays: {} }; } };
   function tplRender() {
