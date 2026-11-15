@@ -6002,7 +6002,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function setDock(on) {
     $('dock').hidden = $('dockGrip').hidden = !on; $('dockBtn').setAttribute('aria-pressed', String(on)); document.querySelector('.chartrow').classList.toggle('dockon', on);
     safeSet('pt-ta-dock', on ? '1' : '0');
-    if (on) { newsFor = ''; wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); objTree(); dwRender(state.rows.length - 1); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
+    if (on) { newsFor = ''; wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); objTree(); dwRender(state.rows.length - 1); if (state.rows.length) { planRun(); planList(); } } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
   }
   $('dockBtn').addEventListener('click', () => setDock($('dock').hidden));
   // widgets in the panel: order, folded, closed and height, kept per browser as pt-ta-dockl
