@@ -494,7 +494,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
       <button type="button" id="sigRun" class="primary">Quét</button><span id="sigProg" class="k"></span>
     </div>
     <div class="scrwrap" data-notr><table class="pattab scrtab" id="sigTab"></table></div>
-    <p class="k" style="font-size:11px;margin:6px 0 0">Tín hiệu kỹ thuật tự động từ giá (nến ngày), không phải khuyến nghị đầu tư. Mỗi mã: kỳ vọng (7 phiếu xu hướng, động lượng, đỉnh đáy), rồi cách tính có kết quả lịch sử tốt nhất trên chính mã đó; "có tín hiệu" = tín hiệu trong 3 phiên gần nhất. Đánh giá "Mạnh" khi có tín hiệu, lịch sử từ +0.1R mỗi lần trên 8 lần trở lên và cùng chiều kỳ vọng. Cổ phiếu không bán khống được: "Bán" là thoát hàng. Bấm mã để mở biểu đồ với kế hoạch đó; chuông để đặt cảnh báo giá ở điểm vào.</p>
+    <p class="k" style="font-size:11px;margin:6px 0 0">Tín hiệu kỹ thuật tự động từ giá (nến ngày), không phải khuyến nghị đầu tư. Mỗi mã: kỳ vọng (7 phiếu xu hướng, động lượng, đỉnh đáy), rồi cách tính có kết quả lịch sử tốt nhất trên chính mã đó; "có tín hiệu" = tín hiệu trong 3 phiên gần nhất. Kết quả đã trừ phí, thuế và tính T+2. Đánh giá "Mạnh" khi có tín hiệu, cách tính có từ +0.1R mỗi lần trên 70% lịch sử đầu (8 lần trở lên), vẫn có lãi trên 30% sau, và cùng chiều kỳ vọng. Cổ phiếu không bán khống được: "Bán" là thoát hàng. Bấm mã để mở biểu đồ với kế hoạch đó; chuông để đặt cảnh báo giá ở điểm vào.</p>
   </dialog>
   <dialog id="viewDlg" class="scrdlg">
     <div class="scrhead"><h3>Phân tích thống kê <span id="viewSym" class="k"></span></h3><form method="dialog"><button aria-label="Đóng">×</button></form></div>
@@ -1357,6 +1357,17 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+70% đầu => first 70%
+30% sau => last 30%
+chưa đủ mẫu kiểm tra => too few to check
+không giữ được => did not hold
+yếu đi => weakened
+Phí và thuế khứ hồi => Round-trip fees and tax
+mua T+2: chỉ bán được từ chiều phiên thứ hai => T+2: shares bought can be sold from the second session's afternoon
+Kết quả đã trừ phí, thuế. Cách tính được chọn trên 70% lịch sử đầu và chỉ được đánh giá "hiệu quả" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy. => Results are after fees and tax. Methods are ranked on the first 70% of the history and rated "works" only if they still make money on the last 30%, which they never saw.
+Tín hiệu chưa kiểm chứng => Signal not confirmed
+Lãi trung bình mỗi lần, đã trừ phí: 70% lịch sử đầu / 30% sau (số lần) => Average per trade after costs: first 70% of history / last 30% (trades)
+Lịch sử 70% / 30% => Record 70% / 30%
 Cảnh báo ở cắt lỗ và mục tiêu của lệnh đang chạy => Alerts at the running trade's stop and target
 tín hiệu đã phát => signal fired
 Tín hiệu đã phát => Signal fired
@@ -5094,20 +5105,51 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   // signal bar's close, then target or stop within 60 bars (a gap through a level fills at the open), else out at the
   // close. Long only, no costs. Levels within half an ATR of another method's are flagged as confluence.
   const plan = { sel: null, shown: [], rows: [], key: '' };
-  function planSim(R, sigs) {
-    const n = R.c.length, o = { n: 0, tgt: 0, stop: 0, ret: 0, r: 0 }; let free = 0;
+  // One position at a time. opt.cost: round-trip cost as a fraction of the entry (fees and tax), taken off every trade.
+  // opt.lock(i): the first bar a long bought at bar i can be sold (VN cash stocks settle T+2, sale from the afternoon):
+  // a stop broken while the shares are in transit exits at that bar's close, a target touched then is missed.
+  // opt.cut: trades entered before it count as in-sample (is), from it on as out-of-sample (oos).
+  function planSim(R, sigs, opt = {}) {
+    const n = R.c.length, cost = opt.cost || 0, cut = opt.cut ?? n, blank = () => ({ n: 0, tgt: 0, stop: 0, ret: 0, r: 0 }), o = { ...blank(), is: blank(), oos: blank() };
+    let free = 0;
     for (const g of sigs) {
       if (g.i < free || !(g.e > g.s) || !(g.t > g.e)) continue;
       let x = null, why = 'time', j = g.i + 1;
-      for (; j < n && j <= g.i + 60; j++) {
+      if (opt.lock) { const j0 = opt.lock(g.i); if (j0 >= n) break;
+        let lo = Infinity; for (let k = g.i + 1; k <= j0; k++) lo = Math.min(lo, R.l[k]);
+        if (lo <= g.s) { x = R.c[j0]; why = 'stop'; j = j0; } else j = j0 + 1; }
+      if (x == null) for (; j < n && j <= g.i + 60; j++) {
         if (R.l[j] <= g.s) { x = Math.min(g.s, R.o[j]); why = 'stop'; break; }
         if (R.h[j] >= g.t) { x = Math.max(g.t, R.o[j]); why = 'target'; break; }
       }
       if (x == null) { if (j >= n) break; x = R.c[j - 1]; }   // still open at the last bar: not counted
-      o.n++; if (why === 'target') o.tgt++; if (why === 'stop') o.stop++; o.ret += x / g.e - 1; o.r += (x - g.e) / (g.e - g.s); free = j + 1;
+      const ret = x / g.e - 1 - cost, rr = (x - g.e - cost * Math.abs(g.e)) / (g.e - g.s);
+      for (const b of [o, g.i < cut ? o.is : o.oos]) { b.n++; if (why === 'target') b.tgt++; if (why === 'stop') b.stop++; b.ret += ret; b.r += rr; }
+      free = j + 1;
     }
     return o;
   }
+  // round-trip cost by instrument: VN stocks 0.15% fee each way + 0.1% sale tax; VN30F about 0.05%; crypto 0.1% each way
+  const costKind = sym => /^VN30F/.test(sym) ? 'fut' : isCrypto(sym) ? 'crypto' : GLOBAL.has(sym) || INDICES.has(sym) ? 'world' : 'stock';
+  const COST_DEF = { stock: 0.4, fut: 0.05, crypto: 0.2, world: 0.1 };
+  const costOf = sym => { const k = costKind(sym), v = parseFloat(safeGet('pt-ta-cost-' + k)); return (isFinite(v) && v >= 0 ? v : COST_DEF[k]) / 100; };
+  function lockOf(rows) {   // T+2 for daily and intraday bars; a weekly or longer bar already spans the settlement
+    const intra = typeof rows[0].t === 'number', di = []; let k = -1, prev = null;
+    for (const r of rows) { const d = dayOf(r.t); if (d !== prev) { k++; prev = d; } di.push(k); }
+    return i => { const tgt = di[i] + 2; let j = i + 1; while (j < rows.length && (di[j] < tgt || (intra && di[j] === tgt && vnMin(rows[j].t) < 780))) j++; return j; };
+  }
+  // a record's verdict: chosen on the first 70% of history, it must hold on the last 30% it never saw
+  function planVerdict(r) {
+    if (!r || !r.n) return ['', 'chưa có lần nào'];
+    if (!r.is) return r.n < 8 ? ['', 'ít mẫu'] : (r.r != null ? r.r / r.n : r.ret / r.n * 10) >= 0.1 ? ['good', 'hiệu quả'] : (r.r != null ? r.r / r.n : r.ret) < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
+    const is = r.is, oo = r.oos, iR = is.n ? is.r / is.n : 0, oR = oo.n ? oo.r / oo.n : 0;
+    if (is.n < 8) return ['', 'ít mẫu'];
+    if (iR < 0.1) return iR < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
+    if (oo.n < 5) return ['', 'chưa đủ mẫu kiểm tra'];
+    return oR >= 0.05 ? ['good', 'hiệu quả'] : oR < 0 ? ['bad', 'không giữ được'] : ['', 'yếu đi'];
+  }
+  const recTxt = r => { const f = b => `${b.n} ${tr('lần')} ${(b.r / b.n >= 0 ? '+' : '') + (b.r / b.n).toFixed(2)}R`;
+    return r.is ? `${tr('70% đầu')}: ${r.is.n ? f(r.is) : '—'} · ${tr('30% sau')}: ${r.oos.n ? f(r.oos) : '—'}` : ''; };
   // planCore: the methods on any bars. dir -1 mirrors the bars (highs become negated lows) and runs the same long rules,
   // so a short setup and its record come from the very logic that was tested long; levels are flipped back at the end.
   // ctx: { out: indicators on the chart, draws: drawings, pat: the focused pattern } — empty for the signals board.
@@ -5117,6 +5159,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const PLAN_NOTE = { 'đóng cửa trên': 'đóng cửa dưới', 'mua quanh': 'bán quanh', 'hồi về': 'hồi lên', 'đang trên đường': 'đang dưới đường', 'giá hiện tại': 'giá hiện tại', 'khi có tín hiệu': 'khi có tín hiệu' };
   function planCore(rows, ctx, dir) {
     const n = rows.length; if (n < 80) return [];
+    const sym = ctx.sym || state.sym, tf = ctx.tf || state.tf, cash = costKind(sym) === 'stock' && !INDICES.has(sym);
+    const simOpt = { cost: costOf(sym), cut: Math.floor(n * 0.7), lock: dir > 0 && cash && (tf === 'D' || INTRA.has(tf)) ? lockOf(rows) : null };
     const sg = dir < 0 ? -1 : 1, R = sg > 0 ? { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }
       : { o: rows.map(r => -r.o), h: rows.map(r => -r.l), l: rows.map(r => -r.h), c: rows.map(r => -r.c) };
     const A = patATR(R), K = 5, S = patSwings(R, K), L1 = n - 1, c = R.c[L1], a = A[L1], out = [], twoR = (e, st) => e + 2 * (e - st);
@@ -5134,7 +5178,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     }
     const Hn = S.filter(q => q.t === 'H'), Ln = S.filter(q => q.t === 'L');
     const nm = id => (PLAN_NAME[id] || [id, id])[sg > 0 ? 0 : 1], nt = x => sg > 0 ? x : PLAN_NOTE[x] || x;
-    const push = (id, name, src, lv, sigs, note, extra) => out.push({ id: id + (sg < 0 ? '-s' : ''), dir: sg, name, src, ...lv, note: nt(note), rec: sigs ? planSim(R, sigs) : null, live: sigs ? sigs.some(g => g.i >= L1 - 3) : false, sig: sigs && sigs.length && sigs[sigs.length - 1].i >= L1 - 3 ? { ...sigs[sigs.length - 1] } : null, ...extra });   // sig: the live signal's own levels
+    const push = (id, name, src, lv, sigs, note, extra) => out.push({ id: id + (sg < 0 ? '-s' : ''), dir: sg, name, src, ...lv, note: nt(note), rec: sigs ? planSim(R, sigs, simOpt) : null, live: sigs ? sigs.some(g => g.i >= L1 - 3) : false, sig: sigs && sigs.length && sigs[sigs.length - 1].i >= L1 - 3 ? { ...sigs[sigs.length - 1] } : null, ...extra });   // sig: the live signal's own levels
     const res = near(Hn, c, true), sup = near(Ln, c, false);
     if (res != null) { const st = stopBelow(Ln, res, a); push('srb', nm('srb'), 'tự động', { e: res, s: st, t: tgtAbove(Hn, res, st) }, sigB, 'đóng cửa trên'); }
     if (sup != null) push('srs', nm('srs'), 'tự động', { e: sup, s: sup - 0.5 * a, t: tgtAbove(Hn, sup, sup - 0.5 * a) }, sigBo, 'mua quanh');
@@ -5170,7 +5214,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     for (const x of out) { const b = x.id.replace(/-s$/, ''); x.with = !LEVELS.has(b) ? [] : out.filter(y => y !== x && LEVELS.has(y.id.replace(/-s$/, '')) && [y.e, y.s, y.t].some(v => [x.e, x.s, x.t].some(w => Math.abs(v - w) <= 0.3 * a))).map(y => y.name); }
     return out;
   }
-  const planScore = x => x.rec && x.rec.n >= 8 ? (x.rec.r != null ? x.rec.r / x.rec.n : x.rec.ret / x.rec.n * 10) : -9;
+  const planScore = x => { const r = x.rec; if (!r) return -9; if (r.is) return r.is.n >= 8 ? r.is.r / r.is.n : -9;   // ranked on the first 70% only
+    return r.n >= 8 ? (r.r != null ? r.r / r.n : r.ret / r.n * 10) : -9; };
   const canShort = sym => /^VN30F/.test(sym) || isCrypto(sym) || GLOBAL.has(sym);
   function planBuild() {
     const ctx = { out: state.out, draws: draw.list, pat: pat.on ? patFocus() : null };
@@ -5238,19 +5283,23 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     $('planSym').textContent = state.sym; const rows = state.rows, n = rows.length, pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`;
     if (!plan.rows.length) { $('planBody').innerHTML = `<span class="k">${tr('Chưa đủ dữ liệu.')}</span>`; return; }
     const shortOk = canShort(state.sym), dirF = plan.dir || 'all', L = plan.rows.filter(x => dirF === 'all' || (dirF === 'long' ? x.dir > 0 : x.dir < 0));
-    const verdict = r => !r || !r.n ? ['', 'chưa có lần nào'] : r.n < 8 ? ['', 'ít mẫu'] : (r.r != null ? r.r / r.n : r.ret / r.n * 10) >= 0.1 ? ['good', 'hiệu quả'] : (r.r != null ? r.r / r.n : r.ret) < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
+    const verdict = planVerdict, ck = costKind(state.sym);
     $('planBody').innerHTML = biasHtml(plan.bias, true)
       + `<div class="seg newstabs" id="planDir">${[['all', 'Cả hai'], ['long', 'Mua'], ['short', shortOk ? 'Bán khống' : 'Bán']].map(([k, t]) => `<button type="button" data-pd="${k}" aria-pressed="${dirF === k}">${tr(t)}</button>`).join('')}</div>`
-      + `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
+      + `<div class="scrbar" style="margin:4px 0"><label>${tr('Phí và thuế khứ hồi')} <input id="planCost" type="number" min="0" max="5" step="0.05" value="${(costOf(state.sym) * 100).toFixed(2)}"> %</label>`
+      + `${costKind(state.sym) === 'stock' ? `<span class="k">${tr('mua T+2: chỉ bán được từ chiều phiên thứ hai')}</span>` : ''}</div>`
+      + `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. ${tr('Kết quả đã trừ phí, thuế. Cách tính được chọn trên 70% lịch sử đầu và chỉ được đánh giá "hiệu quả" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy.')} Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
       + (!shortOk && dirF !== 'long' ? `<div class="pathelp k" style="margin:0 0 4px">${tr('Cổ phiếu Việt Nam không bán khống được: "Bán" là bán phần đang giữ, hoặc không mua mới.')}</div>` : '')
       + L.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="gr ok">${tr('Mua')}</span>` : `<span class="gr sell">${tr(shortOk ? 'Bán khống' : 'Bán')}</span>`;
         return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}">${side} <b>${esc(tr(x.name))}</b> <span class="k">${esc(tr(x.src))}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}${x.sig ? ' ' + fmtDate(state.rows[x.sig.i].t).slice(0, 5) : ''}</span>` : ''}`
           + (x.sig ? `<div class="lv">${tr('Tín hiệu đã phát')}: ${tr('vào')} ${fmtP(x.sig.e)} · ${tr('cắt lỗ')} ${fmtP(x.sig.s)} · ${tr('mục tiêu')} ${fmtP(x.sig.t)}</div>` : '')
           + `<div class="lv">${tr('Vào')} ${fmtP(x.e)} <span class="k">(${esc(tr(x.note))})</span> · ${tr('Cắt lỗ')} ${fmtP(x.s)} <span class="dn">${pc(x.s, x.e)}</span> · ${tr('Mục tiêu')} ${fmtP(x.t)} <span class="up">${pc(x.t, x.e)}</span> · ${tr('Lời/lỗ')} <b${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</b></div>`
-          + `<div class="st">${r && r.n ? `${tr('Lịch sử')}: ${r.n} ${tr('lần')}, ${tr('tới mục tiêu')} ${Math.round(r.tgt / r.n * 100)}%, ${tr('dính cắt lỗ')} ${Math.round(r.stop / r.n * 100)}%, ${r.r != null ? `${tr('TB')} ${(r.r / r.n >= 0 ? '+' : '') + (r.r / r.n).toFixed(2)}R` : `${tr('TB')} ${pc(1 + r.ret / r.n, 1)}`} · ` : ''}<span class="vd ${k}">${tr(v)}</span>`
+          + `<div class="st">${r && r.n ? `${tr('Lịch sử')}: ${r.n} ${tr('lần')}, ${tr('tới mục tiêu')} ${Math.round(r.tgt / r.n * 100)}%, ${tr('dính cắt lỗ')} ${Math.round(r.stop / r.n * 100)}%${r.is ? '' : `, ${tr('TB')} ${pc(1 + r.ret / r.n, 1)}`}${r.is ? `<br>${recTxt(r)}` : ''} · ` : ''}<span class="vd ${k}">${tr(v)}</span>`
           + `${x.with.length ? ` · <span class="cf">${tr('trùng với')} ${esc(x.with.map(w => tr(w)).join(', '))}</span>` : ''}</div></div>`; }).join('')
       + `<details class="pathelp k"><summary>${tr('Cách tính')}</summary>${tr('Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược. Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến, quá hạn thì ra ở giá đóng cửa. Chưa tính phí. Lời/lỗ dưới 1.5 tô đỏ. Chỉ báo dao động (RSI, MACD) chỉ chọn thời điểm vào; cắt lỗ 2 ATR, mục tiêu 2 lần rủi ro. Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm.')}</details>`;
   }
+  $('planBody').addEventListener('change', e => { if (e.target.id !== 'planCost') return; const v = parseFloat(e.target.value);
+    if (isFinite(v) && v >= 0) { safeSet('pt-ta-cost-' + costKind(state.sym), String(v)); plan.key = ''; planRun(); } });
   $('planBody').addEventListener('click', e => { const d = e.target.closest('[data-pd]'); if (d) { plan.dir = d.dataset.pd; planList(); return; }
     const r = e.target.closest('[data-plan]'); if (!r) return; planSelect(plan.sel === r.dataset.plan ? null : r.dataset.plan); });
   // Object tree: every drawing of this symbol and interval, to select, hide, lock or delete one
@@ -6638,13 +6687,14 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   function sigEval(sym, rows) {
     const px = rows[rows.length - 1].c, b = biasOf(rows), lean = b ? b.lean : 0, ok = x => planScore(x) >= 0.1;
-    const P = planCore(rows, {}, 1).concat(planCore(rows, {}, -1)).filter(x => !/^atr/.test(x.id) && (x.live || Math.abs(x.e / px - 1) <= Math.max(0.1, 3 * x.atr / px)));   // a setup far from the price is not a plan for now
+    const cx = { sym, tf: 'D' }, P = planCore(rows, cx, 1).concat(planCore(rows, cx, -1)).filter(x => !/^atr/.test(x.id) && (x.live || Math.abs(x.e / px - 1) <= Math.max(0.1, 3 * x.atr / px)));   // a setup far from the price is not a plan for now
     const liveG = P.filter(x => x.live && ok(x)).sort((x, y) => (y.dir === lean) - (x.dir === lean) || planScore(y) - planScore(x));
     const pick = liveG[0] || P.filter(x => x.dir === (lean || 1) && ok(x)).sort((x, y) => planScore(y) - planScore(x))[0] || P.filter(x => x.dir === (lean || 1)).sort((x, y) => planScore(y) - planScore(x))[0];
     if (!pick) return { sym, px: rows[rows.length - 1].c, b };
-    const live = liveG[0] === pick, grade = !live ? 'Chờ tín hiệu' : pick.dir === lean ? 'Mạnh' : lean === 0 ? 'Vừa' : 'Ngược kỳ vọng';
+    const live = liveG[0] === pick, good = planVerdict(pick.rec)[0] === 'good';
+    const grade = !live ? 'Chờ tín hiệu' : !good ? 'Tín hiệu chưa kiểm chứng' : pick.dir === lean ? 'Mạnh' : lean === 0 ? 'Vừa' : 'Ngược kỳ vọng';
     const lv = live && pick.sig ? { ...pick, e: pick.sig.e, s: pick.sig.s, t: pick.sig.t, when: rows[pick.sig.i].t } : pick;
-    return { sym, px, b, x: lv, live, grade, rank: (live ? 10 : 0) + (pick.dir === lean ? 5 : 0) + planScore(pick) };
+    return { sym, px, b, x: lv, live, grade, rank: (live ? 10 : 0) + (good ? 6 : 0) + (pick.dir === lean ? 3 : 0) + planScore(pick) };
   }
   async function sigScan() {
     if (sigS.busy) return; sigS.busy = true; $('sigRun').disabled = true;
@@ -6664,12 +6714,12 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const side = +$('sigSide').value || 0, liveOnly = $('sigLive').checked, pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`;
     const L = sigS.rows.filter(r => r.x && (!side || r.x.dir === side) && (!liveOnly || r.live)).sort((a, b) => b.rank - a.rank);
     $('sigInfo').textContent = `${L.length} ${EN ? 'symbols' : 'mã'} · ${L.filter(r => r.live).length} ${tr('có tín hiệu')}`;
-    $('sigTab').innerHTML = `<tr><th>${tr('Mã')}</th><th>${tr('Giá')}</th><th>${tr('Kỳ vọng')}</th><th>${tr('Tín hiệu')}</th><th>${tr('Cách tính')}</th><th>${tr('Vùng vào')}</th><th>${tr('Cắt lỗ')}</th><th>${tr('Mục tiêu')}</th><th>${tr('Lời/lỗ')}</th><th>${tr('Lịch sử')}</th><th>${tr('Đánh giá')}</th><th></th></tr>`
+    $('sigTab').innerHTML = `<tr><th>${tr('Mã')}</th><th>${tr('Giá')}</th><th>${tr('Kỳ vọng')}</th><th>${tr('Tín hiệu')}</th><th>${tr('Cách tính')}</th><th>${tr('Vùng vào')}</th><th>${tr('Cắt lỗ')}</th><th>${tr('Mục tiêu')}</th><th>${tr('Lời/lỗ')}</th><th title="${tr('Lãi trung bình mỗi lần, đã trừ phí: 70% lịch sử đầu / 30% sau (số lần)')}">${tr('Lịch sử 70% / 30%')}</th><th>${tr('Đánh giá')}</th><th></th></tr>`
       + L.map(r => { const x = r.x, b = r.b, sh = canShort(r.sym), z = 0.25 * x.atr, lo = Math.min(x.e - z, x.e + z), hi = Math.max(x.e - z, x.e + z), rr = (x.t - x.e) / (x.e - x.s), rec = x.rec;
-        const sideTxt = x.dir > 0 ? tr('Mua') : tr(sh ? 'Bán khống' : 'Bán'), gcls = r.grade === 'Mạnh' ? 'good' : r.grade === 'Ngược kỳ vọng' ? 'bad' : '';
+        const sideTxt = x.dir > 0 ? tr('Mua') : tr(sh ? 'Bán khống' : 'Bán'), gcls = r.grade === 'Mạnh' ? 'good' : ['Ngược kỳ vọng', 'Tín hiệu chưa kiểm chứng'].includes(r.grade) ? 'bad' : '';
         return `<tr data-s="${esc(r.sym)}" data-p="${esc(x.id)}"><td><b>${esc(r.sym)}</b></td><td>${fmtP(r.px)}</td><td class="${b && b.lean > 0 ? 'up' : b && b.lean < 0 ? 'dn' : ''}">${b ? `${tr(b.lean > 0 ? 'Tăng' : b.lean < 0 ? 'Giảm' : 'Trung tính')} ${b.s > 0 ? '+' : ''}${b.s}` : ''}</td>`
           + `<td class="${x.dir > 0 ? 'up' : 'dn'}">${r.live ? '● ' : ''}${sideTxt}${x.when ? ` <span class="k">${fmtDate(x.when).slice(0, 5)}</span>` : ''}</td><td>${esc(tr(x.name))}</td><td>${fmtP(lo)}–${fmtP(hi)}</td><td>${fmtP(x.s)} <span class="k">${pc(x.s, x.e)}</span></td><td>${fmtP(x.t)} <span class="k">${pc(x.t, x.e)}</span></td>`
-          + `<td${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</td><td>${rec && rec.n ? `${rec.n} · ${(rec.r / rec.n >= 0 ? '+' : '') + (rec.r / rec.n).toFixed(2)}R` : ''}</td><td class="vd ${gcls}">${tr(r.grade)}</td>`
+          + `<td${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</td><td>${rec && rec.is ? `${rec.is.n ? (rec.is.r / rec.is.n >= 0 ? '+' : '') + (rec.is.r / rec.is.n).toFixed(2) : '—'} / ${rec.oos.n ? (rec.oos.r / rec.oos.n >= 0 ? '+' : '') + (rec.oos.r / rec.oos.n).toFixed(2) : '—'}R <span class="k">(${rec.is.n}/${rec.oos.n})</span>` : ''}</td><td class="vd ${gcls}">${tr(r.grade)}</td>`
           + `<td><button type="button" class="mini" data-bell="1" title="${tr(r.live ? 'Cảnh báo ở cắt lỗ và mục tiêu của lệnh đang chạy' : 'Cảnh báo khi giá đóng cửa vượt điểm vào')}">🔔</button></td></tr>`; }).join('');
   }
   $('sigBtn').addEventListener('click', () => { $('sigDlg').showModal(); if (!sigS.rows.length) sigScan(); });
