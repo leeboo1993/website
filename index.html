@@ -141,6 +141,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .dwbody { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 11px; } .dwbody b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .dwbody .k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #drawMag[data-mag="strong"] { color: var(--accent); }
+.newstabs { display: flex; margin-bottom: 4px; } .newstabs button { font-size: 11px; padding: 2px 8px; }
 .newsrow { padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 11.5px; line-height: 1.35; } .newsrow .k { display: block; font-size: 10.5px; }
 .newsrow a { color: var(--fg); text-decoration: none; } .newsrow a:hover { text-decoration: underline; } #newsBody { max-height: 320px; overflow-y: auto; }
 .btgrid { display: grid; grid-template-columns: auto 1fr; gap: 4px 6px; align-items: center; font-size: 11px; } .btgrid select, .btgrid input { font-size: 11px; max-width: 100%; min-width: 0; }
@@ -546,7 +547,9 @@ tbody tr[data-i]:hover { background: var(--panel); }
       </section>
       <section data-w="si"><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
       <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
-      <section data-w="news"><h3>Tin tức <span id="newsSym" class="k"></span></h3><div id="newsBody" data-notr></div></section>
+      <section data-w="news"><h3>Tin tức <span id="newsSym" class="k"></span></h3>
+        <div class="seg newstabs" id="newsTabs" role="group" aria-label="Nguồn tin"><button type="button" data-nt="vi">Việt Nam</button><button type="button" data-nt="en">Quốc tế</button><button type="button" data-nt="vnd">Công bố</button></div>
+        <div id="newsBody" data-notr></div></section>
       <section data-w="bt"><h3>Kiểm thử chiến lược</h3>
         <div class="btgrid">
           <span class="k">Mua khi</span><select id="btA1" aria-label="Mua khi: vế trái"></select><select id="btO1" aria-label="Mua khi: điều kiện"><option value="up">cắt lên</option><option value="dn">cắt xuống</option><option value="gt">ở trên</option><option value="lt">ở dưới</option></select><select id="btB1" aria-label="Mua khi: vế phải"></select><input id="btN1" type="number" step="any" aria-label="Mức mua">
@@ -1321,6 +1324,10 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Nguồn tin => News source
+Việt Nam => Vietnam
+Quốc tế => International
+Công bố => Disclosures
 Gửi cảnh báo này tới Telegram của bàn qua Worker (cần mã truy cập ở Thêm → Nguồn SSI) => Send this alert to the desk's Telegram through the Worker (needs the access code under More → SSI source)
 Gửi Telegram => Send to Telegram
 Hình => Drawing
@@ -4621,23 +4628,42 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
   }
 
-  // News: VNDirect's company news for a VN stock (tagged with its code), the market's for an index; none for world
-  // series or coins. Titles link to the source.
-  let newsFor = '';
-  function newsLoad(sym) {
-    const sec = document.querySelector('#dock > section[data-w="news"]'); if (!sec || $('dock').hidden || sec.hidden || newsFor === sym) return;
-    newsFor = sym; $('newsSym').textContent = sym;
-    if (GLOBAL.has(sym) || isCrypto(sym)) { $('newsBody').innerHTML = `<span class="k">${tr('Không có nguồn tin cho mã này.')}</span>`; return; }
-    $('newsBody').innerHTML = `<span class="k">${tr('Đang tải…')}</span>`;
-    const q = INDICES.has(sym) ? 'newsType:market_news~locale:VN' : `tagCodes:${encodeURIComponent(sym)}`;
-    getJSON(`${FINFO}/news?q=${q}&sort=newsDate:desc&size=15`).then(j => {
-      if (newsFor !== sym) return;
-      const L = (j.data || []).filter(x => x.newsTitle);
-      $('newsBody').innerHTML = L.length ? L.map(x => { const u = /^https?:\/\//.test(x.newsUrl || '') ? x.newsUrl : x.dstockUrl;
-        return `<div class="newsrow"><span class="k">${esc(x.newsDate ? fmtDate(x.newsDate).slice(0, 5) : '')} · ${esc(x.newsSource || '')}</span><a href="${esc(u || '#')}" target="_blank" rel="noopener noreferrer">${esc(x.newsTitle.trim())}</a></div>`; }).join('')
-        : `<span class="k">${tr('Chưa có tin.')}</span>`;
-    }).catch(() => { if (newsFor === sym) { newsFor = ''; $('newsBody').innerHTML = `<span class="k">${tr('Không tải được tin.')}</span>`; } });
+  // News, three tabs. Việt Nam: Bing News search in Vietnamese plus the CafeF, VietnamBiz and VnExpress feeds that name
+  // the stock (an index takes the market feeds whole); Quốc tế: Bing News in English; Công bố: VNDirect's company news and
+  // disclosures. The first two come through the relay (the sites refuse a browser page), cached there 10 minutes.
+  const newsUrl = () => RELAY.replace(/^wss:/, 'https:').replace(/\/ssi$/, '/news'), newsCache = {}, coName = {};
+  let newsFor = '', newsTab = ['vi', 'en', 'vnd'].includes(safeGet('pt-ta-newstab')) ? safeGet('pt-ta-newstab') : 'vi';
+  async function newsQuery(sym) {
+    if (INDICES.has(sym)) return { vi: { q: 'VN-Index chứng khoán', market: '1' }, en: { q: 'Vietnam stock market' } };
+    if (GLOBAL.has(sym) || isCrypto(sym)) { const nm = (GLOBAL.get(sym) || {}).name || sym; return { vi: { q: nm }, en: { q: nm } }; }
+    if (!coName[sym]) { try { const j = await getJSON(`${FINFO}/stocks?q=code:${encodeURIComponent(sym)}&fields=code,shortName,shortNameEng`); coName[sym] = (j.data || [])[0] || {}; } catch (e) { coName[sym] = {}; } }
+    const vi = String(coName[sym].shortName || '').replace(/^(CTCP|Công ty( Cổ phần)?|Tập đoàn|Tổng công ty)\s+/i, '').trim(), en = String(coName[sym].shortNameEng || '').replace(/\s+(Group|Corp|Corporation|JSC|Holdings?)$/i, '').trim();
+    const viq = vi && vi.toUpperCase() !== sym ? `${sym} ${vi}` : `cổ phiếu ${sym}`, enq = en && en.toUpperCase() !== sym ? `"${en}"` : `${sym} Vietnam stock`;
+    return { vi: { q: viq, kw: [sym, vi].filter(Boolean).join(',') }, en: { q: enq } };
   }
+  function newsRows(L) {
+    const when = t => { if (!t) return ''; const d = new Date(t + VN_OFFSET * 1000), z = n => String(n).padStart(2, '0'); return `${z(d.getUTCDate())}/${z(d.getUTCMonth() + 1)} ${z(d.getUTCHours())}:${z(d.getUTCMinutes())}`; };
+    return L.length ? L.map(x => `<div class="newsrow"><span class="k">${esc(x.when || when(x.time))} · ${esc(x.source || '')}</span><a href="${esc(/^https?:\/\//.test(x.link || '') ? x.link : '#')}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a></div>`).join('')
+      : `<span class="k">${tr('Chưa có tin.')}</span>`;
+  }
+  async function newsLoad(sym) {
+    const sec = document.querySelector('#dock > section[data-w="news"]'); if (!sec || $('dock').hidden || sec.hidden) return;
+    const vn = !GLOBAL.has(sym) && !isCrypto(sym) && !INDICES.has(sym), tab = newsTab === 'vnd' && !vn ? 'vi' : newsTab, key = `${sym}|${tab}`;
+    $('newsTabs').querySelector('[data-nt="vnd"]').hidden = !vn;
+    $('newsTabs').querySelectorAll('[data-nt]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.nt === tab)));
+    if (newsFor === key) return; newsFor = key; $('newsSym').textContent = sym;
+    const c = newsCache[key]; if (c && Date.now() - c.at < 600e3) { $('newsBody').innerHTML = newsRows(c.L); return; }
+    $('newsBody').innerHTML = `<span class="k">${tr('Đang tải…')}</span>`;
+    try {
+      let L;
+      if (tab === 'vnd') { const j = await getJSON(`${FINFO}/news?q=tagCodes:${encodeURIComponent(sym)}&sort=newsDate:desc&size=20`);
+        L = (j.data || []).filter(x => x.newsTitle).map(x => ({ title: x.newsTitle.trim(), link: /^https?:\/\//.test(x.newsUrl || '') ? x.newsUrl : x.dstockUrl, source: x.newsSource, when: x.newsDate ? fmtDate(x.newsDate).slice(0, 5) : '' })); }
+      else { const q = (await newsQuery(sym))[tab], u = new URL(newsUrl()); for (const [k, v] of Object.entries({ ...q, lang: tab })) if (v) u.searchParams.set(k, v);
+        const r = await fetch(u); if (!r.ok) throw new Error(r.status); L = (await r.json()).items || []; }
+      newsCache[key] = { at: Date.now(), L }; if (newsFor === key) $('newsBody').innerHTML = newsRows(L);
+    } catch (e) { if (newsFor === key) { newsFor = ''; $('newsBody').innerHTML = `<span class="k">${tr('Không tải được tin.')}</span>`; } }
+  }
+  $('newsTabs').addEventListener('click', e => { const b = e.target.closest('[data-nt]'); if (!b) return; newsTab = b.dataset.nt; safeSet('pt-ta-newstab', newsTab); newsLoad(state.sym); });
   // Strategy tester: long only. Buy at the close of the bar where the buy rule turns true; sell at the close where the
   // sell rule does, or intrabar at the stop or target (the stop first when both sit inside one bar). No costs, whole
   // capital each trade. Sides: the price, any indicator line on screen, or a number.

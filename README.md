@@ -20,7 +20,8 @@ The address bar follows the chart, so copying it shares exactly what is on scree
 
 - Vietnamese stocks, indices, flows, ratios, world indices, commodities and FX: VNDirect public APIs.
 - Crypto: Binance public market data (`data-api.binance.vision`).
-- Corporate events, company news, the screener's prices and P/E, P/B, market cap: VNDirect finfo API.
+- Corporate events, company disclosures, the screener's prices and P/E, P/B, market cap: VNDirect finfo API.
+- News: Bing News search (Vietnamese and English) and the CafeF, VietnamBiz and VnExpress RSS feeds, through the relay.
 - Live streams: SSI FastConnect through a private relay (access code), VNDirect, Binance, OKX, Yahoo.
 
 Charting library: [Lightweight Charts](https://github.com/tradingview/lightweight-charts) by TradingView (Apache 2.0), inlined.
