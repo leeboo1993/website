@@ -290,6 +290,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <div class="group" id="styleGroup" role="group" aria-label="Kiểu giá">
       <span class="seg"><button type="button" data-style="c" title="Nến: mở cửa, cao, thấp, đóng cửa">Nến</button><button type="button" data-style="b" title="Thanh OHLC mảnh: giữ đỉnh và đáy, nhẹ hơn nến">Thanh</button><button type="button" data-style="l" title="Đường giá đóng cửa: để chỉ báo nổi lên">Đường</button></span>
       <details class="more" id="moreMenu"><summary>Thêm</summary><div class="menu">
+        <button type="button" id="ssiBtn" title="Nhập mã truy cập để dùng nguồn SSI thời gian thực (chỉ trên trình duyệt này)">Nguồn SSI…</button>
         <button type="button" id="csvBtn" title="Nạp file CSV: Date, Open, High, Low, Close, Volume">Nạp CSV</button>
         <button type="button" id="boardBtn" aria-pressed="false" title="Nến xanh/đỏ như bảng giá; tắt thì nến một màu: rỗng là tăng, đặc là giảm">Màu bảng giá</button>
         <button type="button" id="haBtn" aria-pressed="false" title="Nến Heikin-Ashi (chỉ báo vẫn tính trên giá thật)">Heikin-Ashi</button>
@@ -984,6 +985,9 @@ Ngôn ngữ => Language
 Kênh => Channel
 tấn => tonne
 Xong => Done
+Nhập mã truy cập để dùng nguồn SSI thời gian thực (chỉ trên trình duyệt này) => Enter the access code to use SSI real-time data (this browser only)
+Nguồn SSI… => SSI source…
+Mã truy cập nguồn SSI (để trống để tắt) => SSI access code (leave empty to turn off)
 Cảnh báo khi giá hoặc chỉ báo cắt một mức => Alert when the price or an indicator crosses a level
 Cảnh báo giá => Price alert
 Cảnh báo => Alerts
@@ -2367,7 +2371,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (state.bench !== 'VNINDEX') u.searchParams.set('vs', state.bench); else u.searchParams.delete('vs');
     try { history.replaceState(null, '', u.href.replace('%3A', ':')); } catch (e) { /* some file:// setups refuse */ }
   }
-  if (/[?&]debug\b/.test(location.search)) window.PTTA = { state, IND, tr, get alerts() { return alerts; }, liveTick: f => liveTick(f), checkAlerts: () => checkAlerts() };   // console access for checking indicators
+  if (/[?&]debug\b/.test(location.search)) window.PTTA = { state, IND, tr, get alerts() { return alerts; }, liveTick: f => liveTick(f), checkAlerts: () => checkAlerts(), get feed() { return feed; } };   // console access for checking indicators
 
   // ---------- chart ----------
   const chart = LWC.createChart($('chart'), {
@@ -4031,7 +4035,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (GLOBAL.has(sym) && isIntra()) { state.tf = 'D'; markTf(); }
       if (isIntra()) { await loadIntra(state.tf, true); if (req !== state.reqId) return; }
       hideOverlay(); applyTf(false);
-      setStatus('ok', statusLine()); syncURL(); alertLines(); checkAlerts();
+      setStatus('ok', statusLine()); syncURL(); alertLines(); checkAlerts(); feedStart();
       safeSet('pt-ta-sym', sym + (GLOBAL.has(sym) && !isCrypto(sym) ? '|w' : ''));   // crypto needs no catalogue: it loads at once   // reopened (or after a language switch) on the same symbol
     } catch (err) {
       if (req !== state.reqId) return;
@@ -4157,17 +4161,15 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   async function liveTick(force) {
     const sym = state.sym, tf = state.tf, req = state.reqId;
     if (liveBusy || state.busy || state.source !== 'vnd' || !state.rows.length) return;
+    if (feed.live && feed.sym === sym && Date.now() - feed.polled < 60000) return;   // a live stream: check once a minute
+    feed.polled = Date.now();
     if (!isCrypto(sym) && (GLOBAL.has(sym) || !force && !vnOpen())) return;
     liveBusy = true;
     try {
       const res = isIntra() ? tf : 'D', fresh = await lastBars(sym, res);
       if (req !== state.reqId || tf !== state.tf) return;
       if (!mergeBars(res === 'D' ? state.daily : (state.intra[res] = state.intra[res] || []), fresh)) return;
-      const ts = chart.timeScale(), lr = ts.getVisibleLogicalRange(), atEdge = lr && lr.to >= state.rows.length - 2;
-      applyTf(true); if (atEdge) ts.scrollToRealTime();
-      const hm = new Date().toLocaleTimeString('en-GB');
-      setStatus('ok', `${statusLine()} · ${EN ? 'live' : 'trực tiếp'} ${hm}`);
-      checkAlerts();
+      tickDraw();
     } catch (e) { /* a missed tick is retried by the next one */ }
     finally { liveBusy = false; }
   }
@@ -4283,6 +4285,166 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     else if (sym && sym !== state.sym) { $('alertMenu').removeAttribute('open'); loadSymbol(sym); }
   });
   renderAlerts();
+
+  // ---------- real-time streams ----------
+  // Each market has a main source and fallbacks in order. A source that errors, closes or stays silent 90 s hands
+  // over to the next; on a fallback the main one is tried again every 3 minutes. The refresh above stays underneath:
+  // once a minute while a stream is live (it corrects anything a stream missed), every 15 s without one.
+  //   VN stocks, indices: SSI FastConnect (through the ta-relay Worker; needs the access code) -> VNDirect free
+  //   stream (MQTT) -> refresh. Crypto: Binance -> OKX -> refresh. World: Yahoo -> daily data on reload.
+  // VN sources quote in VND or thousand VND: each tick takes the unit nearer the last close. A tick more than 30%
+  // from the last close is dropped (a unit or contract mismatch, not a price).
+  const RELAY = 'wss://ta-relay.tamvc-93.workers.dev/ssi';
+  const ssiCode = () => safeGet('pt-ta-ssi') || '';
+  const VND_MI = { VNINDEX: 'MI/10', HNX: 'MI/02', HNXINDEX: 'MI/02', UPCOM: 'MI/03', UPCOMINDEX: 'MI/03', VN30: 'MI/VN30', VN100: 'MI/VN100', VNDIAMOND: 'MI/VNDIAMOND' };
+  const SSI_MI = { HNX: 'HNXIndex', HNXINDEX: 'HNXIndex', UPCOM: 'HNXUpcomIndex', UPCOMINDEX: 'HNXUpcomIndex' };
+  // VNDirect's world codes on Yahoo. Spot and LME series are left out: Yahoo quotes a different contract or unit.
+  const YAHOO = { SHANGHAI: '000001.SS', HANGSENG: '^HSI', JCI: '^JKSE', KLCI: '^KLSE', TAIEX: '^TWII', CAC40: '^FCHI', DAX: '^GDAXI',
+    NIKKEI225: '^N225', FSSTI: '^STI', DOWJONES: '^DJI', 'S&P500': '^GSPC', NASDAQ: '^IXIC', DOLLAR: 'DX-Y.NYB', ASX200: '^AXJO', NIFTY: '^NSEI',
+    KOSPI: '^KS11', SET: '^SET.BK', FTSE100: '^FTSE', PSEI: 'PSEI.PS',
+    GEN1ST_WTI_OIL: 'CL=F', GEN1ST_BRENT_OIL: 'BZ=F', GEN1ST_N_GAS: 'NG=F', GEN1ST_GOLDS_CMX: 'GC=F', GEN1ST_SILV_CMX: 'SI=F', GEN1ST_PLATIN_NYM: 'PL=F',
+    GEN1ST_CORN: 'ZC=F', GEN1ST_WHEAT: 'ZW=F', GEN1ST_OATS: 'ZO=F', GEN1ST_SOY: 'ZS=F', GEN1ST_SOY_MEAL: 'ZM=F', GEN1ST_SOY_OIL: 'ZL=F',
+    GEN1ST_COCOA: 'CC=F', GEN1ST_COFF_C: 'KC=F', GEN1ST_SUGAR11: 'SB=F', GEN1ST_COTTON2: 'CT=F',
+    EUR_USD: 'EURUSD=X', GBP_USD: 'GBPUSD=X', USD_CHF: 'CHF=X', USD_JPY: 'JPY=X', AUD_USD: 'AUDUSD=X', USD_KRW: 'KRW=X', USD_CNY: 'CNY=X',
+    USD_HKD: 'HKD=X', USD_SGD: 'SGD=X', USD_MYR: 'MYR=X', USD_THB: 'THB=X', EUR_GBP: 'EURGBP=X', EUR_JPY: 'EURJPY=X', AUD_JPY: 'AUDJPY=X',
+    USD_MXN: 'MXN=X', USD_BRL: 'BRL=X', USD_RUB: 'RUB=X', USD_VND: 'VND=X', EUR_VND: 'EURVND=X' };
+  const feed = { sym: null, vn: false, chain: [], i: 0, stop: null, alive: 0, started: 0, live: false, name: '', polled: 0, prevV: null };
+  const vnTime = (d, tm) => { const a = /(\d+)\/(\d+)\/(\d+)/.exec(d || ''), b = /(\d+):(\d+):(\d+)/.exec(tm || '');
+    return a && b ? Date.UTC(+a[3], a[2] - 1, +a[1], +b[1], +b[2], +b[3]) / 1000 - VN_OFFSET : Date.now() / 1000; };
+  function feedStart() {
+    feedStop(); feed.started = Date.now();
+    const sym = state.sym; if (state.source !== 'vnd') return;
+    feed.vn = !GLOBAL.has(sym) && !isCrypto(sym);
+    feed.chain = isCrypto(sym) ? [['Binance', binanceWS], ['OKX', okxWS]]
+      : !feed.vn ? (YAHOO[sym] ? [['Yahoo', yahooWS]] : [])
+      : [...(ssiCode() ? [['SSI', ssiWS]] : []), ['VNDirect', vndWS]];
+    feed.sym = sym; feed.i = -1; feedNext();
+  }
+  function feedStop() { if (feed.stop) feed.stop(); feed.stop = null; feed.live = false; feed.sym = null; }
+  function feedNext() {
+    if (feed.stop) feed.stop(); feed.stop = null; feed.live = false; feed.prevV = null;
+    if (feed.vn && !vnOpen()) return;                  // before or after the session: the 3-minute check starts it
+    if (++feed.i >= feed.chain.length) return;         // nothing left: the refresh carries on alone
+    const [name, open] = feed.chain[feed.i], sym = feed.sym; let failed = false;
+    feed.name = name; feed.alive = Date.now();
+    feed.stop = open(sym, k => { if (feed.sym !== sym || failed) return; feed.alive = Date.now(); if (k) { feed.live = true; applyTick(k); } },
+      () => { if (failed || feed.sym !== sym) return; failed = true; feedNext(); });
+  }
+  setInterval(() => {
+    if (!feed.sym || state.sym !== feed.sym) return;
+    if (feed.stop && Date.now() - feed.alive > 90000) feedNext();                                   // silent: next source
+    else if ((feed.i > 0 || !feed.stop) && Date.now() - feed.started > 180000) feedStart();         // retry the main one
+  }, 15000);
+  let tickRender = 0;
+  function tickDraw() {   // redraw after new data; a chart at its right edge follows the new bar
+    const ts = chart.timeScale(), lr = ts.getVisibleLogicalRange(), atEdge = lr && lr.to >= state.rows.length - 2;
+    applyTf(true); if (atEdge) ts.scrollToRealTime();
+    const how = feed.live && feed.sym === state.sym ? `${feed.name} ${EN ? 'live' : 'trực tiếp'}` : (EN ? 'refreshed' : 'làm mới');
+    setStatus('ok', `${statusLine()} · ${how} ${new Date().toLocaleTimeString('en-GB')}`);
+    checkAlerts();
+  }
+  function applyTick(k) {   // k: price p, and when the source has them dayO/dayH/dayL/dayV, trade volume v, time t (unix s)
+    if (state.source !== 'vnd' || state.sym !== feed.sym || !state.daily.length || !(k.p > 0)) return;
+    const D = state.daily, last = D[D.length - 1], ref = last.c;
+    const f = feed.vn && Math.abs(Math.log(k.p / 1000 / ref)) < Math.abs(Math.log(k.p / ref)) ? 1 / 1000 : 1, p = +(k.p * f).toPrecision(10);
+    if (!isCrypto(state.sym) && Math.abs(p / ref - 1) > 0.3) return;
+    const sc = x => x > 0 ? +(x * f).toPrecision(10) : null, t = k.t || Date.now() / 1000, day = dayStr(feed.vn ? t + VN_OFFSET : t);
+    if (!feed.vn && !isCrypto(state.sym) && [0, 6].includes(new Date(day).getUTCDay())) return;   // ponytail: futures' Sunday-evening trade waits for Monday's bar
+    const dv = k.dayV > 0 ? k.dayV : null, inc = dv != null && feed.prevV != null ? Math.max(0, dv - feed.prevV) : (k.v > 0 ? k.v : 0);
+    if (dv != null) feed.prevV = dv;
+    if (day === last.t) Object.assign(last, { h: Math.max(last.h, p, sc(k.dayH) || 0), l: Math.min(last.l, p, sc(k.dayL) || Infinity), c: p, v: dv ?? last.v + inc });
+    else if (day > last.t) D.push({ t: day, o: sc(k.dayO) || p, h: Math.max(p, sc(k.dayH) || 0), l: Math.min(p, sc(k.dayL) || Infinity), c: p, v: dv ?? inc });
+    else return;
+    if (feed.vn) for (const res in state.intra) {   // every intraday size already loaded, so a switch back is current
+      const A = state.intra[res], b = A[A.length - 1], bs = Math.floor(t / (res * 60)) * res * 60 + VN_OFFSET; if (!b) continue;
+      if (bs === b.t) Object.assign(b, { h: Math.max(b.h, p), l: Math.min(b.l, p), c: p, v: b.v + inc });
+      else if (bs > b.t) A.push({ t: bs, o: p, h: p, l: p, c: p, v: inc });
+    }
+    if (!tickRender) tickRender = setTimeout(() => { tickRender = 0; if (!state.busy) tickDraw(); }, 1000);   // at most one redraw a second
+  }
+  const closeWS = ws => () => { ws.onclose = ws.onerror = ws.onmessage = null; try { ws.close(); } catch (e) { /* already closed */ } };
+  function ssiWS(sym, on, fail) {   // SignalR over the relay: SwitchChannels, then Broadcast frames carrying JSON
+    const ch = INDICES.has(sym) ? `MI:${SSI_MI[sym] || sym}` : `X:${sym}`, ws = new WebSocket(`${RELAY}?code=${encodeURIComponent(ssiCode())}`);
+    ws.onopen = () => ws.send(JSON.stringify({ H: 'FcMarketDataV2Hub', M: 'SwitchChannels', A: [ch], I: 0 }));
+    ws.onmessage = e => {
+      on(null); let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      for (const x of m.M || []) if (x.M === 'Broadcast') for (const a of x.A || []) try {
+        const o = typeof a === 'string' ? JSON.parse(a) : a, c = typeof o.Content === 'string' ? JSON.parse(o.Content) : o.Content || {}, t = vnTime(c.TradingDate, c.Time);
+        if (o.DataType === 'X' && c.Symbol === sym) on({ p: +c.LastPrice, dayO: +c.Open, dayH: +c.High, dayL: +c.Low, dayV: +c.TotalVol, v: +c.LastVol, t });
+        else if (o.DataType === 'MI') on({ p: +c.IndexValue, dayV: +c.TotalQtty, t });
+      } catch (x) { /* one bad frame */ }
+    };
+    ws.onerror = ws.onclose = fail;
+    return closeWS(ws);
+  }
+  function vndWS(sym, on, fail) {   // MQTT 3.1.1 over WebSocket, no login; a stock is topic "+/<code>", an index "MI/<id>"
+    const topic = INDICES.has(sym) ? VND_MI[sym] : `+/${sym}`; if (!topic) { setTimeout(fail); return () => {}; }
+    const enc = s => { const b = new TextEncoder().encode(s); return [b.length >> 8, b.length & 255, ...b]; };
+    const pkt = (h, body) => { const len = []; let n = body.length; do { let d = n % 128; n = Math.floor(n / 128); if (n) d |= 128; len.push(d); } while (n); return new Uint8Array([h, ...len, ...body]); };
+    const ws = new WebSocket('wss://price-streaming-free.vndirect.com.vn/mqtt', 'mqtt'); ws.binaryType = 'arraybuffer'; let ping = 0;
+    ws.onopen = () => ws.send(pkt(0x10, [0, 4, 77, 81, 84, 84, 4, 2, 0, 60, ...enc('ta-' + Math.random().toString(36).slice(2, 10))]));
+    ws.onmessage = e => {
+      const b = new Uint8Array(e.data), type = b[0] >> 4; on(null);
+      if (type === 2) { if (b[3] !== 0) { fail(); return; } ws.send(pkt(0x82, [0, 1, ...enc(topic), 0])); ping = setInterval(() => ws.send(new Uint8Array([0xC0, 0])), 30000); }
+      else if (type === 3) {
+        let i = 1, d; do { d = b[i++]; } while (d & 128);
+        i += 2 + ((b[i] << 8) | b[i + 1]) + ((b[0] >> 1) & 3 ? 2 : 0);
+        let j; try { j = JSON.parse(new TextDecoder().decode(b.subarray(i))); } catch (x) { return; }
+        for (const msg of j.messages || (j.message && j.message.messages) || []) {
+          const a = typeof msg.message === 'string' ? msg.message.split('|') : msg.message || [];
+          if (msg.msgType === 'SMA' && a[1] === sym) on({ p: +a[10], dayH: +a[6], dayL: +a[7], dayV: +a[9], v: +a[11] });   // matchPrice, high, low, accumulatedVol, matchQtty
+          else if (msg.msgType === 'MI') on({ p: +a[7], dayV: +a[9] });                                                   // marketIndex, totalShareTraded
+        }
+      }
+    };
+    ws.onerror = ws.onclose = fail;
+    const close = closeWS(ws); return () => { clearInterval(ping); close(); };
+  }
+  function binanceWS(sym, on, fail) {   // the day's candle, pushed every second or two
+    const ws = new WebSocket(`wss://data-stream.binance.vision/ws/${sym.toLowerCase()}@kline_1d`);
+    ws.onmessage = e => { const k = (JSON.parse(e.data) || {}).k; if (k) on({ p: +k.c, dayO: +k.o, dayH: +k.h, dayL: +k.l, dayV: +k.v, t: k.t / 1000 }); };
+    ws.onerror = ws.onclose = fail;
+    return closeWS(ws);
+  }
+  function okxWS(sym, on, fail) {   // OKX's UTC daily candle; OKX drops a client that sends nothing for 30 s
+    const ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/business'); let ping = 0;
+    ws.onopen = () => { ws.send(JSON.stringify({ op: 'subscribe', args: [{ channel: 'candle1Dutc', instId: sym.replace(/USDT$/, '-USDT') }] })); ping = setInterval(() => ws.send('ping'), 20000); };
+    ws.onmessage = e => {
+      if (e.data === 'pong') { on(null); return; }
+      const m = JSON.parse(e.data); if (m.event === 'error') { fail(); return; }
+      for (const r of m.data || []) on({ p: +r[4], dayO: +r[1], dayH: +r[2], dayL: +r[3], dayV: +r[5], t: +r[0] / 1000 });
+    };
+    ws.onerror = ws.onclose = fail;
+    const close = closeWS(ws); return () => { clearInterval(ping); close(); };
+  }
+  function pbDecode(b64) {   // Yahoo's PricingData protobuf: 1 id, 2 price (float), 3 time (sint64 ms)
+    const b = Uint8Array.from(atob(b64), c => c.charCodeAt(0)), dv = new DataView(b.buffer), o = {}; let i = 0;
+    const varint = () => { let r = 0n, s = 0n, x; do { x = b[i++]; r |= BigInt(x & 127) << s; s += 7n; } while (x & 128); return r; };
+    while (i < b.length) {
+      const key = Number(varint()), f = key >> 3, w = key & 7;
+      if (w === 0) { const v = varint(); o[f] = Number((v >> 1n) ^ -(v & 1n)); }
+      else if (w === 5) { o[f] = dv.getFloat32(i, true); i += 4; }
+      else if (w === 1) { o[f] = dv.getFloat64(i, true); i += 8; }
+      else if (w === 2) { const n = Number(varint()); o[f] = new TextDecoder().decode(b.subarray(i, i + n)); i += n; }
+      else break;
+    }
+    return o;
+  }
+  function yahooWS(sym, on, fail) {
+    const id = YAHOO[sym], ws = new WebSocket('wss://streamer.finance.yahoo.com/?version=2');
+    ws.onopen = () => ws.send(JSON.stringify({ subscribe: [id] }));
+    ws.onmessage = e => {
+      let b64 = e.data; try { b64 = JSON.parse(e.data).message || b64; } catch (x) { /* plain base64 */ }
+      let q; try { q = pbDecode(b64); } catch (x) { return; }
+      on(null); if (q[1] === id && q[2] > 0) on({ p: q[2], t: q[3] ? q[3] / 1000 : undefined });
+    };
+    ws.onerror = ws.onclose = fail;
+    return closeWS(ws);
+  }
+  $('ssiBtn').addEventListener('click', () => {
+    const v = prompt(tr('Mã truy cập nguồn SSI (để trống để tắt)'), ssiCode());
+    if (v !== null) { safeSet('pt-ta-ssi', v.trim()); $('moreMenu').removeAttribute('open'); feedStart(); }
+  });
 
   // ---------- boot ----------
   markSym(); markTf(); markRange(); markDays(); markScale(false); renderPresets(); renderChips(); markTools(); applyClean();
