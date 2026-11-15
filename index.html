@@ -103,15 +103,15 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .dockgrip::after { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; border-radius: 1px; background: transparent; transition: background .12s; }
 .dockgrip:hover::after, .dockgrip.on::after, .dockgrip:focus-visible::after { background: var(--accent); } .dockgrip:focus-visible { outline: none; }
 .dock { display: flex; flex-direction: column; gap: 8px; font-size: 12px; max-height: max(560px, min(82vh, 920px)); overflow-y: auto; }
-.dock section { border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
-.dock h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.dock section { padding: 2px 0 10px; }   /* house rule: no cards; a hairline under the heading groups a section */
+.dock h3 { margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
 /* widgets, OpenBB-style: drag the header to reorder, fold or close from its buttons, drag the bottom edge for height */
 .dockbar { display: flex; align-items: center; gap: 6px; } .dockbar > span { flex: 1; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
 .dockbar select { font-size: 11px; max-width: 130px; } .dockbar button, .dock > section > h3 button { padding: 0 5px; border-color: transparent; background: transparent; color: var(--muted); line-height: 1.2; cursor: pointer; }
 .dockbar button:hover, .dock > section > h3 button:hover { color: var(--ink, inherit); background: var(--mist); }
 .dock > section { resize: vertical; overflow: auto; min-height: 34px; flex-shrink: 0; }
 .dock > section > h3 { display: flex; align-items: center; gap: 4px; cursor: move; user-select: none; touch-action: none; } .dock > section > h3 .wgap { flex: 1; }
-.dock > section.folded { height: auto !important; resize: none; } .dock > section.folded > :not(h3) { display: none; } .dock > section.folded > h3 { margin-bottom: 0; }
+.dock > section.folded { height: auto !important; resize: none; } .dock > section.folded > :not(h3) { display: none; } .dock > section.folded > h3 { margin-bottom: 0; border-bottom: 0; }
 .dock > section.dragging { opacity: .4; }
 .dock .k { color: var(--muted); font-weight: 400; } .dock .up { color: var(--good); } .dock .dn { color: var(--bad); }
 .wlform { display: flex; gap: 4px; margin-bottom: 6px; } .wlform input { flex: 1; min-width: 0; }
@@ -129,10 +129,10 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .pattab { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; } .pattab td, .pattab th { padding: 2px 3px; text-align: right; } .pattab td:first-child, .pattab th:first-child { text-align: left; }
 .pattab th { color: var(--muted); font-weight: 500; white-space: nowrap; } .pattab td { white-space: nowrap; }
 .pattab tr[data-pid] { cursor: pointer; } .pattab tr[data-pid]:hover td, .pattab tr.on td { background: var(--mist); }
-.patpick { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
+.patpick { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px 0; border-block: 1px solid var(--line); font-size: 11px; }
 .prbox { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 11px; } .prbox input { font-size: 11px; padding: 1px 2px; width: 112px; }
 .prbox button { font-size: 11px; padding: 1px 6px; } #prPick[aria-pressed="true"] { background: var(--accent); color: var(--white); }
-.prres { border: 1px solid var(--line); border-radius: 4px; padding: 5px; margin-bottom: 4px; font-size: 11px; cursor: pointer; } .prres:hover, .prres.on { background: var(--mist); }
+.prres { border-bottom: 1px solid var(--line); padding: 5px 0; font-size: 11px; cursor: pointer; } .prres:hover, .prres.on { background: var(--mist); }
 .prres .lv { font-variant-numeric: tabular-nums; margin-top: 2px; }
 .objrow { display: flex; align-items: center; gap: 2px; padding: 3px 2px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 11px; }
 .objrow > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .objrow:hover, .objrow.on { background: var(--mist); }
@@ -153,8 +153,10 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .scrbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; } .scrbar input[type=number] { width: 56px; } #scrQ { width: 90px; text-transform: uppercase; }
 .scrwrap { max-height: 62vh; overflow: auto; } .scrtab th { position: sticky; top: 0; background: var(--white); cursor: pointer; } .scrtab tr[data-c] { cursor: pointer; } .scrtab tr[data-c]:hover td { background: var(--mist); }
 .scrtab td.up { color: var(--good); } .scrtab td.dn { color: var(--bad); }
-.bias { padding: 6px 8px; border-radius: 6px; background: var(--mist); margin-bottom: 6px; font-size: 12px; } .bias.up { border-left: 3px solid var(--good); } .bias.dn { border-left: 3px solid var(--bad); }
-.bias .st { font-size: 11px; color: var(--muted); margin-top: 2px; } .gr.sell { color: var(--white); background: var(--bad); border-color: var(--bad); }
+.bias { padding: 0 0 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 12px; }   /* no tinted callout (house rule) */
+.bias .st { font-size: 11px; color: var(--muted); margin-top: 2px; } .bias b.good { color: var(--good); } .bias b.bad { color: var(--bad); }
+.rchip { display: inline-block; min-width: 34px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700; text-align: center; color: var(--white); }   /* rating chips: the only pills */
+.rchip.buy { background: var(--good); } .rchip.sell { background: var(--bad); }
 .biaschip.up .pdot { background: var(--good); border-color: var(--good); } .biaschip.dn .pdot { background: var(--bad); border-color: var(--bad); } .biaschip .pdot { border-color: var(--muted); }
 .planrow .lv { font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; } .planrow .up { color: var(--good); } .planrow .dn { color: var(--bad); }
 .cf { color: var(--accent); }
@@ -164,8 +166,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .patpick span { flex: 1; }
-.gr { font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
-.gr.good { color: var(--white); background: var(--navy); border-color: var(--navy); } .gr.ok { color: var(--navy); border-color: var(--navy); }
+.gr { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; }   /* a grade is text, not a pill (house rule) */
+.gr.good { color: var(--navy); } .gr.ok { color: var(--ocean); }
 .vd.good { color: var(--good); font-weight: 600; } .vd.bad { color: var(--bad); }
 .linkbtn { border: 0; background: none; padding: 4px 0; color: var(--accent); cursor: pointer; font-size: 11px; text-decoration: underline; }
 details.pathelp summary { cursor: pointer; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
@@ -5275,7 +5277,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (!b) return `<span class="k">${tr('Chưa đủ dữ liệu.')}</span>`;
     const [cls, word] = b.lean > 0 ? ['up', 'Kỳ vọng tăng'] : b.lean < 0 ? ['dn', 'Kỳ vọng giảm'] : ['', 'Trung tính'], pc = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`;
     const rec = b.n ? `${tr('Lịch sử')}: ${tr('sau')} ${b.n} ${tr('lần đọc tương tự')}, ${tr('21 nến sau tăng')} ${Math.round(b.up * 100)}%, ${tr('TB')} ${pc(b.avg)} (${tr('mọi ngày')} ${pc(b.base)})` : '';
-    return `<div class="bias ${cls}"><b>${tr(word)}</b> <span class="k">${tr('điểm')} ${b.s > 0 ? '+' : ''}${b.s}/7</span>`
+    return `<div class="bias"><b class="${cls === 'up' ? 'good' : cls === 'dn' ? 'bad' : ''}">${tr(word)}</b> <span class="k">${tr('điểm')} ${b.s > 0 ? '+' : ''}${b.s}/7</span>`
       + (full ? `<div class="st">${b.pro.length ? `▲ ${b.pro.map(x => esc(tr(x))).join(' · ')}` : ''}${b.con.length ? `<br>▼ ${b.con.map(x => esc(tr(x))).join(' · ')}` : ''}</div><div class="st">${rec}</div>` : '') + '</div>';
   }
   function planList() {
@@ -5290,7 +5292,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       + `${costKind(state.sym) === 'stock' ? `<span class="k">${tr('mua T+2: chỉ bán được từ chiều phiên thứ hai')}</span>` : ''}</div>`
       + `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. ${tr('Kết quả đã trừ phí, thuế. Cách tính được chọn trên 70% lịch sử đầu và chỉ được đánh giá "hiệu quả" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy.')} Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
       + (!shortOk && dirF !== 'long' ? `<div class="pathelp k" style="margin:0 0 4px">${tr('Cổ phiếu Việt Nam không bán khống được: "Bán" là bán phần đang giữ, hoặc không mua mới.')}</div>` : '')
-      + L.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="gr ok">${tr('Mua')}</span>` : `<span class="gr sell">${tr(shortOk ? 'Bán khống' : 'Bán')}</span>`;
+      + L.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="rchip buy">${tr('Mua')}</span>` : `<span class="rchip sell">${tr(shortOk ? 'Bán khống' : 'Bán')}</span>`;
         return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}">${side} <b>${esc(tr(x.name))}</b> <span class="k">${esc(tr(x.src))}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}${x.sig ? ' ' + fmtDate(state.rows[x.sig.i].t).slice(0, 5) : ''}</span>` : ''}`
           + (x.sig ? `<div class="lv">${tr('Tín hiệu đã phát')}: ${tr('vào')} ${fmtP(x.sig.e)} · ${tr('cắt lỗ')} ${fmtP(x.sig.s)} · ${tr('mục tiêu')} ${fmtP(x.sig.t)}</div>` : '')
           + `<div class="lv">${tr('Vào')} ${fmtP(x.e)} <span class="k">(${esc(tr(x.note))})</span> · ${tr('Cắt lỗ')} ${fmtP(x.s)} <span class="dn">${pc(x.s, x.e)}</span> · ${tr('Mục tiêu')} ${fmtP(x.t)} <span class="up">${pc(x.t, x.e)}</span> · ${tr('Lời/lỗ')} <b${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</b></div>`
