@@ -158,6 +158,7 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .rchip { display: inline-block; min-width: 34px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 700; text-align: center; color: var(--white); }   /* rating chips: the only pills */
 .rchip.buy { background: var(--good); } .rchip.sell { background: var(--bad); }
 .biaschip.up .pdot { background: var(--good); border-color: var(--good); } .biaschip.dn .pdot { background: var(--bad); border-color: var(--bad); } .biaschip .pdot { border-color: var(--muted); }
+.concl { font-size: 12px; line-height: 1.45; padding: 0 0 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); } .concl b.good { color: var(--good); } .concl b.bad { color: var(--bad); }
 .planrow .lv { font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; } .planrow .up { color: var(--good); } .planrow .dn { color: var(--bad); }
 .cf { color: var(--accent); }
 .viewtabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 8px 0 4px; } .viewtabs button { font-size: 12px; }
@@ -1359,6 +1360,29 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+quanh => around
+đã kiểm chứng => verified
+Theo kỳ vọng => Expected side
+Tất cả => All
+Chờ => Wait
+khi => when
+tín hiệu => signal
+Đứng ngoài => Stand aside
+chưa có cách tính nào đã kiểm chứng cho chiều mua => no verified method on the buy side
+chưa có cách tính nào đã kiểm chứng cho chiều bán => no verified method on the sell side
+chưa có cách tính nào đã kiểm chứng => no verified method
+Lưu ý: trên lịch sử mã này, kỳ vọng như hiện tại chưa cho kết quả tốt hơn mọi ngày. => Note: on this symbol's history, a reading like today's has not done better than any day.
+Không có cách tính nào cho chiều này. => No method on this side.
+Không có cách tính nào đã kiểm chứng cho chiều này. => No verified method on this side.
+Chỉ hiện cách tính đã kiểm chứng => Verified methods only
+cách tính chưa kiểm chứng => unverified methods
+Mốc so sánh => Baseline
+mua => buy
+bán => sell
+bất kỳ ngày nào => on any day
+Một cách tính chỉ đáng dùng khi hơn mốc này. => A method is only worth using if it beats this.
+mặc định => default
+Mỗi dòng là một cách đặt điểm vào, cắt lỗ và mục tiêu, kèm kết quả của chính cách đó trên mã này, đã trừ phí, thuế (cổ phiếu tính T+2). Cách tính được xếp hạng trên 70% lịch sử đầu và chỉ "đã kiểm chứng" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy. Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược; cổ phiếu Việt Nam không bán khống được nên "Bán" là bán phần đang giữ hoặc không mua mới. Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến. Lời/lỗ dưới 1.5 tô đỏ. Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm. => Each row is one way to set the entry, stop and target, with that method's own result on this symbol after fees and tax (T+2 for stocks). Methods are ranked on the first 70% of the history and "verified" only if they still make money on the last 30%, which they never saw. The sell side uses the buy rules on the price series turned upside down; Vietnamese stocks cannot be sold short, so "Sell" means sell what you hold or do not buy. Support and resistance: highs and lows ±5 bars, used only once confirmed. Entry at the close of the signal bar; stop or target within 60 bars. Reward/risk under 1.5 in red. Expected direction: 7 votes (price vs MA50 and MA200; MA50 slope; RSI vs 50; MACD vs Signal; 20 bars; swings) added up; +3 and above leans up, −3 and below leans down.
 70% đầu => first 70%
 30% sau => last 30%
 chưa đủ mẫu kiểm tra => too few to check
@@ -5148,7 +5172,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (is.n < 8) return ['', 'ít mẫu'];
     if (iR < 0.1) return iR < 0 ? ['bad', 'kém'] : ['', 'trung tính'];
     if (oo.n < 5) return ['', 'chưa đủ mẫu kiểm tra'];
-    return oR >= 0.05 ? ['good', 'hiệu quả'] : oR < 0 ? ['bad', 'không giữ được'] : ['', 'yếu đi'];
+    return oR >= 0.05 ? ['good', 'đã kiểm chứng'] : oR < 0 ? ['bad', 'không giữ được'] : ['', 'yếu đi'];
   }
   const recTxt = r => { const f = b => `${b.n} ${tr('lần')} ${(b.r / b.n >= 0 ? '+' : '') + (b.r / b.n).toFixed(2)}R`;
     return r.is ? `${tr('70% đầu')}: ${r.is.n ? f(r.is) : '—'} · ${tr('30% sau')}: ${r.oos.n ? f(r.oos) : '—'}` : ''; };
@@ -5280,29 +5304,49 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return `<div class="bias"><b class="${cls === 'up' ? 'good' : cls === 'dn' ? 'bad' : ''}">${tr(word)}</b> <span class="k">${tr('điểm')} ${b.s > 0 ? '+' : ''}${b.s}/7</span>`
       + (full ? `<div class="st">${b.pro.length ? `▲ ${b.pro.map(x => esc(tr(x))).join(' · ')}` : ''}${b.con.length ? `<br>▼ ${b.con.map(x => esc(tr(x))).join(' · ')}` : ''}</div><div class="st">${rec}</div>` : '') + '</div>';
   }
+  // The widget answers first: one conclusion (the best VERIFIED setup in the expected direction, or stand aside), then
+  // the verified setups of that direction. Unverified methods, the other side and the baseline are one click away.
   function planList() {
     const sec = document.querySelector('#dock > section[data-w="plan"]'); if (!sec || $('dock').hidden || sec.hidden) return;
     $('planSym').textContent = state.sym; const rows = state.rows, n = rows.length, pc = (v, e) => `${v >= e ? '+' : ''}${((v / e - 1) * 100).toFixed(1)}%`;
     if (!plan.rows.length) { $('planBody').innerHTML = `<span class="k">${tr('Chưa đủ dữ liệu.')}</span>`; return; }
-    const shortOk = canShort(state.sym), dirF = plan.dir || 'all', L = plan.rows.filter(x => dirF === 'all' || (dirF === 'long' ? x.dir > 0 : x.dir < 0));
-    const verdict = planVerdict, ck = costKind(state.sym);
-    $('planBody').innerHTML = biasHtml(plan.bias, true)
-      + `<div class="seg newstabs" id="planDir">${[['all', 'Cả hai'], ['long', 'Mua'], ['short', shortOk ? 'Bán khống' : 'Bán']].map(([k, t]) => `<button type="button" data-pd="${k}" aria-pressed="${dirF === k}">${tr(t)}</button>`).join('')}</div>`
-      + `<div class="scrbar" style="margin:4px 0"><label>${tr('Phí và thuế khứ hồi')} <input id="planCost" type="number" min="0" max="5" step="0.05" value="${(costOf(state.sym) * 100).toFixed(2)}"> %</label>`
-      + `${costKind(state.sym) === 'stock' ? `<span class="k">${tr('mua T+2: chỉ bán được từ chiều phiên thứ hai')}</span>` : ''}</div>`
-      + `<div class="pathelp k" style="margin:0 0 4px">${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. ${tr('Kết quả đã trừ phí, thuế. Cách tính được chọn trên 70% lịch sử đầu và chỉ được đánh giá "hiệu quả" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy.')} Mỗi cách tính một điểm vào lệnh, cắt lỗ và mục tiêu; "lịch sử" là kết quả của chính cách đó trên mã này. Xếp theo lãi trung bình mỗi lần (tính bằng R = số lần rủi ro). Một cách tính chỉ đáng dùng khi hơn "mốc so sánh" (mua bất kỳ ngày nào). Bấm để vẽ lên biểu đồ.</div>`
-      + (!shortOk && dirF !== 'long' ? `<div class="pathelp k" style="margin:0 0 4px">${tr('Cổ phiếu Việt Nam không bán khống được: "Bán" là bán phần đang giữ, hoặc không mua mới.')}</div>` : '')
-      + L.map(x => { const r = x.rec, [k, v] = verdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="rchip buy">${tr('Mua')}</span>` : `<span class="rchip sell">${tr(shortOk ? 'Bán khống' : 'Bán')}</span>`;
-        return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}">${side} <b>${esc(tr(x.name))}</b> <span class="k">${esc(tr(x.src))}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}${x.sig ? ' ' + fmtDate(state.rows[x.sig.i].t).slice(0, 5) : ''}</span>` : ''}`
+    const shortOk = canShort(state.sym), b = plan.bias, lean = b ? b.lean : 0, sellW = shortOk ? 'Bán khống' : 'Bán';
+    const good = x => planVerdict(x.rec)[0] === 'good', base = plan.rows.filter(x => /^atr/.test(x.id)), cand = plan.rows.filter(x => !/^atr/.test(x.id));
+    const dirF = plan.dir || 'lean', want = x => dirF === 'all' ? true : dirF === 'long' ? x.dir > 0 : dirF === 'short' ? x.dir < 0 : lean ? x.dir === lean : true;
+    const L = cand.filter(want), shown = plan.showAll ? L : L.filter(good), hiddenN = L.length - shown.length;
+    // the conclusion
+    const lv = x => x.sig ? x.sig : x, act = x => x.dir > 0 ? tr('Mua') : tr(sellW);
+    const verified = cand.filter(x => good(x) && (lean ? x.dir === lean : true)).sort((x, y) => (y.live - x.live) || planScore(y) - planScore(x)), top = verified[0];
+    const biasEdge = b && b.n ? (lean > 0 ? b.avg > b.base : lean < 0 ? b.avg < b.base : true) : true;
+    let concl;
+    if (top) { const v = lv(top), rr = (v.t - v.e) / (v.e - v.s);
+      const cond = /quanh/.test(top.note) ? tr('quanh') : `${tr('khi')} ${tr(top.note)}`;   // "around 1,878" or "when the close is above 1,878"
+      concl = top.live ? `<b class="${top.dir > 0 ? 'good' : 'bad'}">${act(top)}</b> · ${esc(tr(top.name))}${top.sig ? ` (${tr('tín hiệu')} ${fmtDate(rows[top.sig.i].t).slice(0, 5)})` : ''}`
+        : `<b class="${top.dir > 0 ? 'good' : 'bad'}">${tr('Chờ')} ${act(top).toLowerCase()}</b> ${esc(cond)} ${fmtP(top.e)} · ${esc(tr(top.name))}`
+        + `<br>${tr('Vào')} ${fmtP(v.e)} · ${tr('Cắt lỗ')} ${fmtP(v.s)} (${pc(v.s, v.e)}) · ${tr('Mục tiêu')} ${fmtP(v.t)} (${pc(v.t, v.e)}) · ${tr('Lời/lỗ')} ${rr.toFixed(1)}`
+        + `<br><span class="k">${recTxt(top.rec)}</span>`; }
+    else concl = `<b>${tr('Đứng ngoài')}</b> · ${tr(lean ? `chưa có cách tính nào đã kiểm chứng cho chiều ${lean > 0 ? 'mua' : 'bán'}` : 'chưa có cách tính nào đã kiểm chứng')}.`;
+    if (lean && !biasEdge) concl += `<br><span class="k">${tr('Lưu ý: trên lịch sử mã này, kỳ vọng như hiện tại chưa cho kết quả tốt hơn mọi ngày.')}</span>`;
+    $('planBody').innerHTML = biasHtml(b, true) + `<div class="concl">${concl}</div>`
+      + `<div class="seg newstabs" id="planDir">${[['lean', 'Theo kỳ vọng'], ['long', 'Mua'], ['short', sellW], ['all', 'Tất cả']].map(([k, t]) => `<button type="button" data-pd="${k}" aria-pressed="${dirF === k}">${tr(t)}</button>`).join('')}</div>`
+      + (!shown.length ? `<span class="k">${tr(plan.showAll ? 'Không có cách tính nào cho chiều này.' : 'Không có cách tính nào đã kiểm chứng cho chiều này.')}</span>` : '')
+      + shown.map(x => { const r = x.rec, [k, v] = planVerdict(r), rr = ((x.t - x.e) / (x.e - x.s)), side = x.dir > 0 ? `<span class="rchip buy">${tr('Mua')}</span>` : `<span class="rchip sell">${tr(sellW)}</span>`;
+        return `<div class="patrow planrow${plan.sel === x.id ? ' on' : ''}" data-plan="${x.id}">${side} <b>${esc(tr(x.name))}</b> <span class="k">${esc(tr(x.src))}</span>${x.live ? ` <span class="gr good">${tr('có tín hiệu')}${x.sig ? ' ' + fmtDate(rows[x.sig.i].t).slice(0, 5) : ''}</span>` : ''}`
           + (x.sig ? `<div class="lv">${tr('Tín hiệu đã phát')}: ${tr('vào')} ${fmtP(x.sig.e)} · ${tr('cắt lỗ')} ${fmtP(x.sig.s)} · ${tr('mục tiêu')} ${fmtP(x.sig.t)}</div>` : '')
           + `<div class="lv">${tr('Vào')} ${fmtP(x.e)} <span class="k">(${esc(tr(x.note))})</span> · ${tr('Cắt lỗ')} ${fmtP(x.s)} <span class="dn">${pc(x.s, x.e)}</span> · ${tr('Mục tiêu')} ${fmtP(x.t)} <span class="up">${pc(x.t, x.e)}</span> · ${tr('Lời/lỗ')} <b${rr < 1.5 ? ' class="dn"' : ''}>${rr.toFixed(1)}</b></div>`
-          + `<div class="st">${r && r.n ? `${tr('Lịch sử')}: ${r.n} ${tr('lần')}, ${tr('tới mục tiêu')} ${Math.round(r.tgt / r.n * 100)}%, ${tr('dính cắt lỗ')} ${Math.round(r.stop / r.n * 100)}%${r.is ? '' : `, ${tr('TB')} ${pc(1 + r.ret / r.n, 1)}`}${r.is ? `<br>${recTxt(r)}` : ''} · ` : ''}<span class="vd ${k}">${tr(v)}</span>`
+          + `<div class="st">${r && r.n ? (r.is ? recTxt(r) : `${r.n} ${tr('lần')}, ${tr('tới mục tiêu')} ${Math.round(r.tgt / r.n * 100)}%`) + ' · ' : ''}<span class="vd ${k}">${tr(v)}</span>`
           + `${x.with.length ? ` · <span class="cf">${tr('trùng với')} ${esc(x.with.map(w => tr(w)).join(', '))}</span>` : ''}</div></div>`; }).join('')
-      + `<details class="pathelp k"><summary>${tr('Cách tính')}</summary>${tr('Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược. Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến, quá hạn thì ra ở giá đóng cửa. Chưa tính phí. Lời/lỗ dưới 1.5 tô đỏ. Chỉ báo dao động (RSI, MACD) chỉ chọn thời điểm vào; cắt lỗ 2 ATR, mục tiêu 2 lần rủi ro. Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm.')}</details>`;
+      + (hiddenN || plan.showAll ? `<button type="button" class="linkbtn" data-act="planall">${plan.showAll ? tr('Chỉ hiện cách tính đã kiểm chứng') : `${tr('Hiện')} ${hiddenN} ${tr('cách tính chưa kiểm chứng')}`}</button>` : '')
+      + (base.length ? `<div class="pathelp k">${tr('Mốc so sánh')}: ${base.map(x => `${x.dir > 0 ? tr('mua') : tr('bán')} ${tr('bất kỳ ngày nào')} ${recTxt(x.rec)}`).join('; ')}. ${tr('Một cách tính chỉ đáng dùng khi hơn mốc này.')}</div>` : '')
+      + `<details class="pathelp k"><summary>${tr('Cách tính')}</summary>`
+      + `<div class="scrbar" style="margin:4px 0"><label>${tr('Phí và thuế khứ hồi')} <input id="planCost" type="number" min="0" max="5" step="0.05" value="${(costOf(state.sym) * 100).toFixed(2)}"> %</label> <span class="k">${tr('mặc định')} ${COST_DEF[costKind(state.sym)]}%</span></div>`
+      + `${esc(TF_LABEL[state.tf])} · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}. `
+      + tr('Mỗi dòng là một cách đặt điểm vào, cắt lỗ và mục tiêu, kèm kết quả của chính cách đó trên mã này, đã trừ phí, thuế (cổ phiếu tính T+2). Cách tính được xếp hạng trên 70% lịch sử đầu và chỉ "đã kiểm chứng" khi vẫn có lãi trên 30% sau mà nó chưa từng thấy. Bên bán dùng đúng quy tắc của bên mua trên chuỗi giá lật ngược; cổ phiếu Việt Nam không bán khống được nên "Bán" là bán phần đang giữ hoặc không mua mới. Hỗ trợ, kháng cự: đỉnh, đáy ±5 nến, chỉ dùng khi đã xác nhận. Vào lệnh ở giá đóng cửa của nến có tín hiệu; cắt lỗ, mục tiêu trong 60 nến. Lời/lỗ dưới 1.5 tô đỏ. Kỳ vọng: 7 phiếu (giá so với MA50, MA200; hướng MA50; RSI so với 50; MACD so với Signal; 20 nến; đỉnh, đáy) cộng lại, từ +3 là nghiêng tăng, từ −3 là nghiêng giảm.') + `</details>`;
   }
   $('planBody').addEventListener('change', e => { if (e.target.id !== 'planCost') return; const v = parseFloat(e.target.value);
     if (isFinite(v) && v >= 0) { safeSet('pt-ta-cost-' + costKind(state.sym), String(v)); plan.key = ''; planRun(); } });
   $('planBody').addEventListener('click', e => { const d = e.target.closest('[data-pd]'); if (d) { plan.dir = d.dataset.pd; planList(); return; }
+    if (e.target.closest('[data-act="planall"]')) { plan.showAll = !plan.showAll; planList(); return; }
     const r = e.target.closest('[data-plan]'); if (!r) return; planSelect(plan.sel === r.dataset.plan ? null : r.dataset.plan); });
   // Object tree: every drawing of this symbol and interval, to select, hide, lock or delete one
   function objTree() {
