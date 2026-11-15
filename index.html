@@ -6375,7 +6375,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return `<svg viewBox="0 0 ${W} ${Hh}" role="img">${g}</svg>`;
   }
   const vStats = pairs => `<div class="vstats">${pairs.map(([k, v]) => `<span><span class="k">${esc(tr(k))}</span> <b>${v}</b></span>`).join('')}</div>`;
-  const MONTHS = EN ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : Array.from({ length: 12 }, (_, i) => `T${i + 1}`);
+  const MON_NAMES = EN ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] : Array.from({ length: 12 }, (_, i) => `T${i + 1}`);
   const pct1 = v => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`;
   function viewRender() {
     const t = view.tab, D = state.daily, rows = state.rows, out = $('viewBody'), note = $('viewNote'), opts = $('viewOpts');
@@ -6387,8 +6387,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       const mon = []; for (const r of D2) { const k = r.t.slice(0, 7); if (!mon.length || mon[mon.length - 1].k !== k) mon.push({ k, c: r.c }); else mon[mon.length - 1].c = r.c; }
       const by = Array.from({ length: 12 }, () => []); for (let i = 1; i < mon.length; i++) by[+mon[i].k.slice(5) - 1].push(mon[i].c / mon[i - 1].c - 1);
       const mean = by.map(a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null), pos = by.map(a => a.length ? a.filter(x => x > 0).length / a.length : null), med = by.map(a => { if (!a.length) return null; const b = [...a].sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; });
-      out.innerHTML = vBars(mean.map(v => v == null ? null : v * 100), MONTHS, { fmt: v => v.toFixed(1) + '%', over: med.map(v => v == null ? null : v * 100) })
-        + `<table class="pattab"><tr><th>${tr('Tháng')}</th>${MONTHS.map(m => `<th>${m}</th>`).join('')}</tr><tr><td>${tr('% năm tăng')}</td>${pos.map(v => `<td>${v == null ? '' : Math.round(v * 100) + '%'}</td>`).join('')}</tr><tr><td>${tr('Số năm')}</td>${by.map(a => `<td>${a.length}</td>`).join('')}</tr></table>`;
+      out.innerHTML = vBars(mean.map(v => v == null ? null : v * 100), MON_NAMES, { fmt: v => v.toFixed(1) + '%', over: med.map(v => v == null ? null : v * 100) })
+        + `<table class="pattab"><tr><th>${tr('Tháng')}</th>${MON_NAMES.map(m => `<th>${m}</th>`).join('')}</tr><tr><td>${tr('% năm tăng')}</td>${pos.map(v => `<td>${v == null ? '' : Math.round(v * 100) + '%'}</td>`).join('')}</tr><tr><td>${tr('Số năm')}</td>${by.map(a => `<td>${a.length}</td>`).join('')}</tr></table>`;
       note.textContent = EN ? `Bars: average return by month; line: median. ${mon[0].k} to ${mon[mon.length - 1].k}. With few years a pattern is easily chance; seasonality drifts over time.`
         : `Cột: lợi suất trung bình mỗi tháng; đường: trung vị. ${mon[0].k}–${mon[mon.length - 1].k}. Mẫu ít năm dễ là ngẫu nhiên; mùa vụ trôi theo thời gian.`; return;
     }
