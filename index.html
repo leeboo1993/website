@@ -134,6 +134,13 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .prbox button { font-size: 11px; padding: 1px 6px; } #prPick[aria-pressed="true"] { background: var(--accent); color: var(--white); }
 .prres { border: 1px solid var(--line); border-radius: 4px; padding: 5px; margin-bottom: 4px; font-size: 11px; cursor: pointer; } .prres:hover, .prres.on { background: var(--mist); }
 .prres .lv { font-variant-numeric: tabular-nums; margin-top: 2px; }
+.objrow { display: flex; align-items: center; gap: 2px; padding: 3px 2px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 11px; }
+.objrow > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .objrow:hover, .objrow.on { background: var(--mist); }
+.objrow.off > span { color: var(--muted); text-decoration: line-through; } .objrow button { padding: 0 4px; border-color: transparent; background: transparent; color: var(--muted); font-size: 11px; }
+.objrow button[aria-pressed="true"] { color: var(--accent); }
+.dwbody { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 11px; } .dwbody b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.dwbody .k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#drawMag[data-mag="strong"] { color: var(--accent); }
 .tlrow { display: grid; grid-template-columns: 112px 1fr; gap: 6px; padding: 3px 2px; font-size: 11px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .tlrow:hover, .tlrow.on { background: var(--mist); } .tlrow.gap { cursor: default; background: none; } .tlrow > span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .patpick span { flex: 1; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
@@ -211,6 +218,8 @@ select { font: inherit; font-size: 12px; border: 1px solid var(--line); border-r
 .ichip .chip { border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 9px; border-radius: 999px; color: var(--fg); }
 .ichip .chip[data-on="false"] { color: var(--muted); text-decoration: line-through; text-decoration-color: #B9C2CB; }
 .ichip .chip[data-on="false"] .sw { opacity: .25; }
+.pchip { border: 1px dashed var(--accent); border-radius: 999px; background: var(--white); padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--fg); }
+.pchip b { font-weight: 600; } .pchip .k { color: var(--muted); }
 .sw { width: 14px; height: 3px; border-radius: 2px; background: var(--c); flex: none; }
 .mini { border: 0; background: transparent; padding: 3px 5px; color: var(--muted); display: inline-flex; align-items: center; }
 .mini:hover { color: var(--fg); }
@@ -364,7 +373,10 @@ tbody tr[data-i]:hover { background: var(--panel); }
     <span class="bsep" aria-hidden="true"></span>
     <span class="bn" title="Bước 5: gọn">5</span>
     <div class="group" id="styleGroup" role="group" aria-label="Kiểu giá">
-      <span class="seg"><button type="button" data-style="c" title="Nến: mở cửa, cao, thấp, đóng cửa">Nến</button><button type="button" data-style="b" title="Thanh OHLC mảnh: giữ đỉnh và đáy, nhẹ hơn nến">Thanh</button><button type="button" data-style="l" title="Đường giá đóng cửa: để chỉ báo nổi lên">Đường</button></span>
+      <select id="styleSel" aria-label="Kiểu biểu đồ" title="Kiểu biểu đồ">
+        <option value="c">Nến</option><option value="h">Nến rỗng</option><option value="b">Thanh OHLC</option><option value="col">Cột</option><option value="hl">Cao – thấp</option>
+        <option value="l">Đường</option><option value="lm">Đường có điểm</option><option value="step">Đường bậc thang</option><option value="a">Vùng</option><option value="base">Đường nền</option>
+      </select>
       <details class="more" id="moreMenu"><summary>Thêm</summary><div class="menu">
         <button type="button" id="fsBtn" title="Toàn màn hình (Shift+F)">Toàn màn hình</button>
         <button type="button" id="cmdBtn" title="Tìm mã, chỉ báo hoặc lệnh (Ctrl+K)">Tìm nhanh</button>
@@ -376,6 +388,10 @@ tbody tr[data-i]:hover { background: var(--panel); }
         <button type="button" id="unstarBtn" title="Bỏ nhấn mạnh mọi chỉ báo">Bỏ nhấn mạnh</button>
         <button type="button" id="gridH" aria-pressed="true" title="Đường lưới ngang ở các mức giá">Lưới ngang</button>
         <button type="button" id="gridV" aria-pressed="false" title="Đường lưới dọc theo thời gian">Lưới dọc</button>
+        <button type="button" data-sx="pt-ta-inv" aria-pressed="false" title="Đảo ngược trục giá: giá cao ở dưới">Đảo trục giá</button>
+        <button type="button" data-sx="pt-ta-prevc" aria-pressed="false" title="Đường giá đóng cửa phiên trước (giá tham chiếu)">Đóng cửa phiên trước</button>
+        <button type="button" data-sx="pt-ta-hilo" aria-pressed="false" title="Nhãn giá cao nhất và thấp nhất trong vùng đang xem">Nhãn cao / thấp</button>
+        <button type="button" data-sx="pt-ta-cd" aria-pressed="false" title="Đếm ngược tới lúc nến hiện tại đóng (khung phút, giờ)">Đếm ngược nến</button>
         <button type="button" id="pngHead" aria-pressed="false" title="In tên mã và chỉ báo ở đầu ảnh PNG">PNG: tiêu đề</button>
         <button type="button" id="pngSrc" aria-pressed="false" title="In dòng nguồn ở cuối ảnh PNG">PNG: nguồn</button>
       </div></details>
@@ -400,6 +416,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
   </div>
   <div class="ctx">
     <div class="chips" id="chips" role="group" aria-label="Chỉ báo đang dùng"></div>
+    <div class="chips" id="patChips" role="group" aria-label="Mô hình giá đang hình thành" hidden></div>
     <div id="drawStyle" class="drawstyle" role="group" aria-label="Định dạng hình" hidden>
           <span class="lbl">Nét</span>
           <span class="dscols" id="dsCols"></span>
@@ -456,6 +473,10 @@ tbody tr[data-i]:hover { background: var(--panel); }
       <span class="bn" title="Bước 4: vẽ và nhấn mạnh">4</span>
       <div id="railGroups"></div>
       <span class="rsep" aria-hidden="true"></span>
+      <button type="button" id="drawMag" title="Nam châm" aria-label="Nam châm"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a5 5 0 0 0 10 0V3"/><path d="M4 6h3M11 6h3"/></svg></button>
+      <button type="button" id="drawStay" aria-pressed="false" title="Giữ công cụ vẽ sau mỗi hình (vẽ liên tiếp)" aria-label="Giữ công cụ vẽ"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l1-4 8-8 3 3-8 8-4 1z"/><path d="M10 5l3 3"/></svg></button>
+      <button type="button" id="drawLock" aria-pressed="false" title="Khóa mọi hình vẽ (không kéo, không xóa nhầm)" aria-label="Khóa mọi hình vẽ"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="10" height="7" rx="1"/><path d="M6 8V6a3 3 0 0 1 6 0v2"/></svg></button>
+      <button type="button" id="drawHide" aria-pressed="false" title="Ẩn mọi hình vẽ" aria-label="Ẩn mọi hình vẽ"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 9s3-5 7.5-5 7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z"/><circle cx="9" cy="9" r="2"/></svg></button>
       <button type="button" id="drawDel" title="Xóa hình đang chọn (bấm vào hình để chọn); không chọn thì xóa tất cả" aria-label="Xóa hình"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h11M7 5V3h4v2M5 5l.8 10h6.4L13 5"/></svg></button>
     </div>
     <div class="stage">
@@ -480,6 +501,8 @@ tbody tr[data-i]:hover { background: var(--panel); }
       </section>
       <section data-w="si"><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
       <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
+      <section data-w="dw"><h3>Cửa sổ dữ liệu</h3><div id="dwBody" class="dwbody"></div></section>
+      <section data-w="obj"><h3>Hình vẽ <span id="objCount" class="k"></span></h3><div id="objBody"></div></section>
       <section data-w="pat"><h3>Mô hình giá</h3>
         <div class="prbox" id="prBox"><span class="k">Giai đoạn</span><input type="date" id="prFrom" aria-label="Từ ngày"><span>–</span><input type="date" id="prTo" aria-label="Đến ngày">
           <button type="button" id="prPick" title="Bấm hai điểm trên biểu đồ: đầu và cuối giai đoạn">Chọn trên biểu đồ</button><button type="button" id="prClear" aria-label="Bỏ giai đoạn" title="Bỏ giai đoạn: xem toàn bộ lịch sử">×</button></div>
@@ -519,7 +542,7 @@ tbody tr[data-i]:hover { background: var(--panel); }
     </div>
     <div class="pk-sets">
       <span class="lbl">Bộ chỉ báo</span>
-      <button type="button" id="resetBtn" title="Đưa danh sách chỉ báo về bộ mặc định">Bộ mặc định</button>
+      <button type="button" id="resetBtn" title="Bỏ mọi chỉ báo, chỉ giữ biểu đồ nến">Chỉ nến</button>
       <select id="presetSel" aria-label="Bộ chỉ báo đã lưu"></select>
       <button type="button" id="presetSave">Lưu bộ</button>
       <button type="button" id="presetDel">Xóa bộ</button>
@@ -1241,6 +1264,48 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Kiểu biểu đồ => Chart type
+Nến rỗng => Hollow candles
+Thanh OHLC => OHLC bars
+Cột => Columns
+Cao – thấp => High-low
+Đường có điểm => Line with markers
+Đường bậc thang => Step line
+Vùng => Area
+Đường nền => Baseline
+Đảo ngược trục giá: giá cao ở dưới => Invert the price scale: high prices at the bottom
+Đảo trục giá => Invert scale
+Đường giá đóng cửa phiên trước (giá tham chiếu) => Previous session's close (reference price)
+Đóng cửa phiên trước => Previous close
+Nhãn giá cao nhất và thấp nhất trong vùng đang xem => Labels at the highest and lowest price on screen
+Nhãn cao / thấp => High / low labels
+Đếm ngược tới lúc nến hiện tại đóng (khung phút, giờ) => Countdown to the close of the current bar (minute and hour bars)
+Đếm ngược nến => Bar countdown
+Phiên trước => Prev close
+Cao => High
+Thấp => Low
+Nam châm: tắt => Magnet: off
+Nam châm: hút giá mở, cao, thấp, đóng trong 10 px => Magnet: snaps to the open, high, low or close within 10 px
+Nam châm mạnh: luôn hút về giá gần nhất của nến => Strong magnet: always snaps to the bar's nearest price
+Nam châm => Magnet
+Giữ công cụ vẽ sau mỗi hình (vẽ liên tiếp) => Keep the drawing tool after each shape
+Giữ công cụ vẽ => Keep drawing tool
+Khóa mọi hình vẽ (không kéo, không xóa nhầm) => Lock all drawings (no accidental moves or deletes)
+Khóa mọi hình vẽ => Lock all drawings
+Ẩn mọi hình vẽ => Hide all drawings
+Cửa sổ dữ liệu => Data window
+Hình vẽ => Drawings
+Chưa có hình vẽ. => No drawings yet.
+Mở khóa => Unlock
+Khóa => Lock
+Hiện => Show
+Ẩn => Hide
+Thay đổi => Change
+Mô hình giá đang hình thành => Patterns now
+Bấm để xem mô hình trên biểu đồ => Click to see the pattern on the chart
+Không có mô hình nào đang hình thành => No pattern forming now
+Bỏ mọi chỉ báo, chỉ giữ biểu đồ nến => Remove every indicator, keep the candles only
+Chỉ nến => Candles only
 Giai đoạn => Period
 Từ ngày => From
 Đến ngày => To
@@ -1355,6 +1420,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const INTRA_DAYS = { 1: 21, 5: 75, 15: 150, 30: 240, 60: 365 };
   const INTRA = new Set(['1', '5', '15', '30', '60']);
   const VN_OFFSET = 7 * 3600; // intraday bars are drawn on Vietnam clock time
+  // chart types, TradingView's list where a time axis can carry it (Renko, Kagi, line break and point & figure cannot)
+  const STYLES = ['c', 'h', 'b', 'col', 'hl', 'l', 'lm', 'step', 'a', 'base'], LINEY = new Set(['l', 'lm', 'step', 'a', 'base', 'col']);
   const TF_LABEL = EN ? { 1: '1-minute', 5: '5-minute', 15: '15-minute', 30: '30-minute', 60: 'Hourly', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' }
     : { 1: '1 phút', 5: '5 phút', 15: '15 phút', 30: '30 phút', 60: '1 giờ', D: 'Ngày', W: 'Tuần', M: 'Tháng', Q: 'Quý', Y: 'Năm' };
   const TF_EN = { 1: '1m', 5: '5m', 15: '15m', 30: '30m', 60: '1h', D: 'Daily', W: 'Weekly', M: 'Monthly', Q: 'Quarterly', Y: 'Yearly' };
@@ -2628,10 +2695,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   // ---------- indicator instances (per viewer) ----------
   let uidSeq = 1;
   const mk = (type, p, c) => ({ uid: 'i' + (uidSeq++), type, p: p || {}, c: c || {}, on: true });
-  const DEFAULT_INDS = () => [
-    mk('sma', { len: 20, w: 2 }, { line: C.sky }), mk('sma', { len: 50, w: 2 }, { line: C.ocean }), mk('sma', { len: 200, w: 2 }, { line: C.navy }),
-    mk('spike'), mk('volume'), mk('rsi'), mk('macd'),
-  ];
+  const DEFAULT_INDS = () => [];   // candles only; the user adds what they want (16 Nov: "only the candle chart")
   // a saved list back to indicators; "join" (drawn in another indicator's pane) is kept as that one's position
   function revive(raw) {
     const ok = raw.filter(x => x && IND[x.type]), list = ok.map(x => Object.assign(mk(x.type, x.p, x.c), { on: x.on !== false, hi: !!x.hi, name: x.name, noAxis: x.noAxis, noLegend: x.noLegend }));
@@ -2640,7 +2704,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   function loadInds() {
     try {
-      const raw = JSON.parse(safeGet('pt-ta-inds-v4') || 'null');
+      const raw = JSON.parse(safeGet('pt-ta-inds-v5') || 'null');
       if (Array.isArray(raw) && raw.length) {
         const list = revive(raw);
         if (list.length) return list;
@@ -2650,7 +2714,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   const snapshot = () => state.inds.map(x => ({ type: x.type, p: x.p, c: x.c, on: x.on, hi: !!x.hi, name: x.name || undefined, noAxis: x.noAxis || undefined, noLegend: x.noLegend || undefined,
     join: x.join && state.inds.some(y => y.uid === x.join) ? state.inds.findIndex(y => y.uid === x.join) : undefined }));
-  const saveInds = () => safeSet('pt-ta-inds-v4', JSON.stringify(snapshot()));
+  const saveInds = () => safeSet('pt-ta-inds-v5', JSON.stringify(snapshot()));
   function paramsOf(inst) {
     const d = IND[inst.type], p = {};
     for (const q of d.params) { let v = +inst.p[q.k]; if (!isFinite(v)) v = q.def; p[q.k] = Math.min(q.max, Math.max(q.min, v)); }
@@ -2672,7 +2736,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     // ext[key]: series fetched on demand for indicators (benchmark closes, P/E-P/B with sector, exchange code)
     ext: {}, bench: qVs || (safeGet('pt-ta-bench') || 'VNINDEX').toUpperCase(),
     scale: ['n', 'log', 'pct'].includes(safeGet('pt-ta-scale')) ? safeGet('pt-ta-scale') : 'n', ha: safeGet('pt-ta-ha') === '1',
-    style: ['c', 'b', 'l'].includes(safeGet('pt-ta-style')) ? safeGet('pt-ta-style') : 'c', board: safeGet('pt-ta-board') === '1', clean: safeGet('pt-ta-clean') === '1',
+    style: STYLES.includes(safeGet('pt-ta-style')) ? safeGet('pt-ta-style') : 'c', board: safeGet('pt-ta-board') === '1', clean: safeGet('pt-ta-clean') === '1',
     rows: [], out: [], spike: null, source: 'vnd', reqId: 0, busy: false,
     inds: [], editing: null,
   };
@@ -2731,6 +2795,41 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     priceLineColor: P.text, priceLineStyle: LWC.LineStyle.Dotted, priceFormat: PRICE_FMT }, 0);
   const priceLine = chart.addSeries(LWC.LineSeries, { color: C.graphite, lineWidth: 1, visible: false, crosshairMarkerRadius: 3,
     priceLineColor: P.text, priceLineStyle: LWC.LineStyle.Dotted, priceFormat: PRICE_FMT }, 0);
+  const priceArea = chart.addSeries(LWC.AreaSeries, { lineColor: C.navy, topColor: fade(C.navy, 0.28), bottomColor: fade(C.navy, 0.02), lineWidth: 2, visible: false,
+    priceLineColor: P.text, priceLineStyle: LWC.LineStyle.Dotted, priceFormat: PRICE_FMT }, 0);
+  const priceBase = chart.addSeries(LWC.BaselineSeries, { topLineColor: C.up, topFillColor1: fade(C.up, 0.25), topFillColor2: fade(C.up, 0.03), bottomLineColor: C.down,
+    bottomFillColor1: fade(C.down, 0.03), bottomFillColor2: fade(C.down, 0.25), lineWidth: 2, visible: false, priceLineColor: P.text, priceLineStyle: LWC.LineStyle.Dotted, priceFormat: PRICE_FMT }, 0);
+  const priceCols = chart.addSeries(LWC.HistogramSeries, { visible: false, priceFormat: PRICE_FMT, priceLineColor: P.text, priceLineStyle: LWC.LineStyle.Dotted,
+    autoscaleInfoProvider: () => null }, 0);   // columns rise from below the pane; the hidden candles set the scale
+  // Price-scale extras from the More menu: inverted scale, previous close line, visible high/low labels, bar countdown
+  const sxOn = k => safeGet(k) === '1';
+  let pcLine = null, hiLine = null, loLine = null;
+  function scaleExtras() {
+    const rows = state.rows, n = rows.length, sr = activeSeries();
+    document.querySelectorAll('[data-sx]').forEach(b => b.setAttribute('aria-pressed', String(sxOn(b.dataset.sx))));
+    candle.priceScale().applyOptions({ invertScale: sxOn('pt-ta-inv') });
+    for (const l of [pcLine, hiLine, loLine]) if (l) { try { l.s.removePriceLine(l.l); } catch (e) { /* series gone */ } }
+    pcLine = hiLine = loLine = null; if (n < 2) return;
+    if (sxOn('pt-ta-prevc')) {   // intraday: the last close of the session before the last bar's; daily and longer: the bar before
+      let pc = rows[n - 2].c;
+      if (isIntra()) { const d = dayOf(rows[n - 1].t); for (let i = n - 1; i >= 0; i--) if (dayOf(rows[i].t) !== d) { pc = rows[i].c; break; } }
+      pcLine = { s: sr, l: sr.createPriceLine({ price: pc, color: C.gray2, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: tr('Phiên trước') }) };
+    }
+    if (sxOn('pt-ta-hilo')) {
+      const vr = chart.timeScale().getVisibleLogicalRange(), a = vr ? Math.max(0, Math.floor(vr.from)) : 0, b = vr ? Math.min(n - 1, Math.ceil(vr.to)) : n - 1;
+      let hi = -Infinity, lo = Infinity; for (let i = a; i <= b; i++) { hi = Math.max(hi, rows[i].h); lo = Math.min(lo, rows[i].l); }
+      if (isFinite(hi)) { const o = { color: C.gray2, lineWidth: 1, lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, lineVisible: false };
+        hiLine = { s: sr, l: sr.createPriceLine({ ...o, price: hi, title: tr('Cao') }) }; loLine = { s: sr, l: sr.createPriceLine({ ...o, price: lo, title: tr('Thấp') }) }; }
+    }
+  }
+  { let tm = 0; chart.timeScale().subscribeVisibleLogicalRangeChange(() => { if (!sxOn('pt-ta-hilo')) return; clearTimeout(tm); tm = setTimeout(scaleExtras, 120); }); }
+  setInterval(() => {   // countdown to the close of the live intraday bar, on the price label
+    const sr = activeSeries(), rows = state.rows; let t = '';
+    if (sxOn('pt-ta-cd') && isIntra() && rows.length) { const len = +state.tf * 60, rem = Math.round(unixOf(rows[rows.length - 1].t) + len - Date.now() / 1000);
+      if (rem > 0 && rem <= len) t = `${Math.floor(rem / 60)}:${String(rem % 60).padStart(2, '0')}`; }
+    for (const x of [candle, priceBars, priceLine, priceArea, priceBase, priceCols]) if (x.options().title !== (x === sr ? t : '')) x.applyOptions({ title: x === sr ? t : '' });
+  }, 1000);
+  const activeSeries = () => ({ b: priceBars, l: priceLine, lm: priceLine, step: priceLine, a: priceArea, base: priceBase, col: priceCols })[state.style] || candle;
 
   // Indicator series are rebuilt on every render: overlays on pane 0, every other indicator in its own pane.
   let indSeries = [], paneList = [];   // paneList[i]: the uid of the indicator in pane i + 1
@@ -3064,11 +3163,28 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     let prevRange = null;
     if (keepRange) { try { prevRange = chart.timeScale().getVisibleRange(); } catch (e) { prevRange = null; } }
     rendering = true;
-    const ohlc = state.ha && state.style !== 'l' ? HEIKIN(rows) : rows.map(r => ({ time: r.t, open: r.o, high: r.h, low: r.l, close: r.c }));
+    const st = state.style, upC = state.board ? P.candleUp : C.graphite, dnC = state.board ? P.candleDown : C.graphite;
+    let ohlc = state.ha && !LINEY.has(st) ? HEIKIN(rows) : rows.map(r => ({ time: r.t, open: r.o, high: r.h, low: r.l, close: r.c }));
+    if (st === 'h') ohlc = ohlc.map((b, i) => { const col = b.close >= (i ? ohlc[i - 1].close : b.open) ? upC : dnC;   // hollow when it closed above its open; colour by the previous close
+      return { ...b, color: b.close > b.open ? CLEAR : col, borderColor: col, wickColor: col }; });
+    if (st === 'hl') ohlc = ohlc.map((b, i) => { const col = b.close >= (i ? ohlc[i - 1].close : b.open) ? upC : dnC;
+      return { time: b.time, open: b.high, high: b.high, low: b.low, close: b.low, color: col, borderColor: col, wickColor: col }; });
     for (const h of HL) if ((h.all || !h.pn) && ohlc[h.i]) Object.assign(ohlc[h.i], { color: h.col, borderColor: h.col, wickColor: h.col });
-    candle.setData(ohlc); candle.applyOptions(state.style === 'c' ? candleOn() : CANDLE_OFF);
-    priceBars.applyOptions({ visible: state.style === 'b', upColor: state.board ? P.candleUp : C.graphite, downColor: state.board ? P.candleDown : C.graphite }); priceBars.setData(state.style === 'b' ? ohlc : []);
-    priceLine.applyOptions({ visible: state.style === 'l' }); priceLine.setData(state.style === 'l' ? rows.map(r => ({ time: r.t, value: r.c })) : []);
+    candle.setData(ohlc); candle.applyOptions(['c', 'h', 'hl'].includes(st) ? candleOn() : CANDLE_OFF);
+    priceBars.applyOptions({ visible: st === 'b', upColor: upC, downColor: dnC }); priceBars.setData(st === 'b' ? ohlc : []);
+    const closes = () => rows.map(r => ({ time: r.t, value: r.c })), lineOn = ['l', 'lm', 'step'].includes(st);
+    priceLine.applyOptions({ visible: lineOn, lineType: st === 'step' ? LWC.LineType.WithSteps : LWC.LineType.Simple, pointMarkersVisible: st === 'lm', pointMarkersRadius: 2.5 });
+    priceLine.setData(lineOn ? closes() : []);
+    priceArea.applyOptions({ visible: st === 'a' }); priceArea.setData(st === 'a' ? closes() : []);
+    if (st === 'base') {   // the baseline at the middle of the bars on screen, as TradingView's 50% level
+      const vr = chart.timeScale().getVisibleLogicalRange(), a = vr ? Math.max(0, Math.floor(vr.from)) : 0, b = vr ? Math.min(rows.length - 1, Math.ceil(vr.to)) : rows.length - 1;
+      let hi = -Infinity, lo = Infinity; for (let i = a; i <= b; i++) { hi = Math.max(hi, rows[i].h); lo = Math.min(lo, rows[i].l); }
+      priceBase.applyOptions({ baseValue: { type: 'price', price: isFinite(hi) ? (hi + lo) / 2 : rows[rows.length - 1].c } });
+    }
+    priceBase.applyOptions({ visible: st === 'base' }); priceBase.setData(st === 'base' ? closes() : []);
+    priceCols.applyOptions({ visible: st === 'col' });
+    priceCols.setData(st === 'col' ? rows.map((r, i) => ({ time: r.t, value: r.c, color: r.c >= (i ? rows[i - 1].c : r.o) ? fade(upC, 0.75) : fade(dnC, 0.75) })) : []);
+    scaleExtras();
     // a compare line forces the % scale, so both series read from the same first visible bar
     const cmpOn = state.out.some(o => o.inst.on && o.d.id === 'cmp'), M = LWC.PriceScaleMode;
     candle.priceScale().applyOptions({ mode: cmpOn || state.scale === 'pct' ? M.Percentage : state.scale === 'log' ? M.Logarithmic : M.Normal });
@@ -3078,7 +3194,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     else setView();
     rendering = false; renderedAt = performance.now();
     renderMarkers();
-    renderLegend(rows.length - 1);
+    renderLegend(rows.length - 1); dwRender(rows.length - 1);
     renderHighlights();
     renderChips();
     patRun();
@@ -3217,8 +3333,8 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   chart.subscribeCrosshairMove(param => {
     if (!state.rows.length) return;
-    if (param && param.logical != null && param.point) renderLegend(Math.round(param.logical), true);
-    else renderLegend(state.rows.length - 1);
+    if (param && param.logical != null && param.point) { renderLegend(Math.round(param.logical), true); dwRender(Math.round(param.logical)); }
+    else { renderLegend(state.rows.length - 1); dwRender(state.rows.length - 1); }
   });
 
   // ---------- highlight log ----------
@@ -3429,9 +3545,9 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
 
   function markScale(cmpOn) {
     $('scaleGroup').querySelectorAll('button[data-scale]').forEach(b => b.setAttribute('aria-pressed', String(cmpOn ? b.dataset.scale === 'pct' : b.dataset.scale === state.scale)));
-    $('styleGroup').querySelectorAll('button[data-style]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.style === state.style)));
-    $('haBtn').setAttribute('aria-pressed', String(state.ha && state.style !== 'l')); $('haBtn').disabled = state.style === 'l';   // a line has no candle to smooth
-    $('boardBtn').setAttribute('aria-pressed', String(state.board && state.style !== 'l')); $('boardBtn').disabled = state.style === 'l';
+    $('styleSel').value = state.style;
+    $('haBtn').setAttribute('aria-pressed', String(state.ha && !LINEY.has(state.style))); $('haBtn').disabled = LINEY.has(state.style);   // a line has no candle to smooth
+    $('boardBtn').setAttribute('aria-pressed', String(state.board && !['l', 'lm', 'step', 'a'].includes(state.style))); $('boardBtn').disabled = ['l', 'lm', 'step', 'a'].includes(state.style);
   }
   $('scaleGroup').addEventListener('click', e => {
     const b = e.target.closest('button[data-scale]'); if (!b) return;
@@ -3455,10 +3571,11 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const b = e.target.closest('button'); if (!b || b.disabled) return;
     if (b.id === 'haBtn') { state.ha = !state.ha; safeSet('pt-ta-ha', state.ha ? '1' : '0'); }
     else if (b.id === 'boardBtn') { state.board = !state.board; safeSet('pt-ta-board', state.board ? '1' : '0'); }
-    else if (b.dataset.style) { state.style = b.dataset.style; safeSet('pt-ta-style', state.style); }
+    else if (b.dataset.sx) { safeSet(b.dataset.sx, safeGet(b.dataset.sx) === '1' ? '0' : '1'); }   // price-scale extras
     else return;
     render(true);
   });
+  $('styleSel').addEventListener('change', e => { state.style = e.target.value; safeSet('pt-ta-style', state.style); render(true); });
   $('benchList').innerHTML = BENCHES.map(b => `<option value="${b}">`).join('');
   const VN_COMPOSITE = new Set(['VNINDEX', 'HNX', 'HNXCOMPOSITE', 'UPCOM', 'UPCOMCOMPOSITE']);
   // a world series saved last time loads once the catalogue says how to fetch it
@@ -3631,19 +3748,23 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     ewwxy: 4, ewwxyxz: 6, cyclic: 2, timecycle: 2, sine: 2, rrect: 3, circle: 2, tri3: 3, arc: 3, curve: 3, dcurve: 4, polyline: 0, path: 0, brush: -1, marker: -1,
     long: 3, short: 3, vprofile: 2 };
   const FREE = new Set(['brush', 'marker']);
-  const draw = { tool: null, pts: [], hover: null, sel: null, list: [], key: '', sig: '', bsig: '' };
+  const draw = { tool: null, pts: [], hover: null, sel: null, list: [], key: '', sig: '', bsig: '', clip: null,
+    mag: ['off', 'weak', 'strong'].includes(safeGet('pt-ta-mag')) ? safeGet('pt-ta-mag') : 'weak', stay: safeGet('pt-ta-stay') === '1',
+    lockAll: safeGet('pt-ta-lockall') === '1', hideAll: safeGet('pt-ta-hideall') === '1' };
+  const shownDraws = () => draw.hideAll ? [] : draw.list.filter(d => !d.hide);
+  const locked = d => draw.lockAll || !!d.lock;
   if (window.PTTA) Object.assign(window.PTTA, { draw, candle, chart });
   const drawKey = () => `${state.sym}|${isIntra() ? 'i' : 'd'}`;
   const loadDraws = () => { try { return JSON.parse(safeGet('pt-ta-draw') || '{}') || {}; } catch (e) { return {}; } };
   function syncDraws() {
     const k = drawKey(); if (k === draw.key) return;
-    draw.key = k; draw.list = loadDraws()[k] || []; draw.sel = null; draw.pts = []; draw.sig = '';
+    draw.key = k; draw.list = loadDraws()[k] || []; draw.sel = null; draw.pts = []; draw.sig = ''; setTimeout(objTree);
     for (const d of draw.list) if (d.type === 'bracket' && d.rot != null) {   // the quarter-turn bracket of 26 Oct
       const [p, q] = d.pts; d.pts = d.rot % 2 ? [p, { t: p.t, k: p.k, p: q.p }] : [p, Object.assign({}, q, { p: p.p })];
       d.flip = d.rot === 2 || d.rot === 3; delete d.rot;
     }
   }
-  function saveDraws() { histPush(); const all = loadDraws(); if (draw.list.length) all[draw.key] = draw.list; else delete all[draw.key]; safeSet('pt-ta-draw', JSON.stringify(all)); draw.sig = ''; }
+  function saveDraws() { histPush(); const all = loadDraws(); if (draw.list.length) all[draw.key] = draw.list; else delete all[draw.key]; safeSet('pt-ta-draw', JSON.stringify(all)); objTree(); draw.sig = ''; }
   // bar index of a stored time: the last bar starting on or before it
   function idxOf(t) {
     const rows = state.rows; let lo = 0, hi = rows.length - 1, k = 0;
@@ -3659,7 +3780,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     let p = candle.coordinateToPrice(param.point.y);
     const r = rows[Math.max(0, Math.min(last, li))];
     // magnet: a click within 10 px of the bar's open, high, low or close takes that price exactly (the nearest one)
-    if (li <= last && r) { let bd = 10; for (const v of [r.h, r.l, r.c, r.o]) { const y = candle.priceToCoordinate(v), dd = y == null ? Infinity : Math.abs(y - param.point.y); if (dd <= bd) { bd = dd; p = v; } } }
+    if (li <= last && r && draw.mag !== 'off') { let bd = draw.mag === 'strong' ? Infinity : 10; for (const v of [r.h, r.l, r.c, r.o]) { const y = candle.priceToCoordinate(v), dd = y == null ? Infinity : Math.abs(y - param.point.y); if (dd <= bd) { bd = dd; p = v; } } }
     return ptAt(li, p);
   }
   // a stored point from a bar index (negative before the first bar, past the last one into the future) and a price
@@ -4004,7 +4125,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function svgOf(withSel) {
     if (!state.rows.length) return '';
     const H = chart.panes()[0].getHeight(), W = chart.timeScale().width(), f = v => v.toFixed(1);
-    const items = draw.list.concat(pat.shown).map(d => ({ d, pts: d.pts, sel: withSel && d === draw.sel }));   // pattern lines draw like drawings, but are not saved or selectable
+    const items = shownDraws().concat(pat.shown).map(d => ({ d, pts: d.pts, sel: withSel && d === draw.sel }));   // pattern lines draw like drawings, but are not saved or selectable
     if (draw.tool && draw.pts.length) items.push({ d: { type: draw.tool }, pts: draw.pts.concat(draw.hover ? [draw.hover] : []), sel: false, temp: true });
     const FONT = 'font-family="Helvetica Neue, Helvetica, Arial, sans-serif"', HALO = 'stroke="#FFFFFF" stroke-width="3" paint-order="stroke" stroke-linejoin="round"';
     let s = '', full = '', labels = '', fullLab = '';
@@ -4078,8 +4199,12 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   }
   const distSeg = (px, py, l) => { const dx = l.x2 - l.x1, dy = l.y2 - l.y1, L2 = dx * dx + dy * dy, t = L2 ? Math.max(0, Math.min(1, ((px - l.x1) * dx + (py - l.y1) * dy) / L2)) : 0;
     return Math.hypot(px - l.x1 - t * dx, py - l.y1 - t * dy); };
+  const MAG_T = { off: 'Nam châm: tắt', weak: 'Nam châm: hút giá mở, cao, thấp, đóng trong 10 px', strong: 'Nam châm mạnh: luôn hút về giá gần nhất của nến' };
   function markTools() {
     document.querySelector('.stage').classList.toggle('drawing', !!draw.tool);
+    $('drawMag').setAttribute('aria-pressed', String(draw.mag !== 'off')); $('drawMag').title = tr(MAG_T[draw.mag]); $('drawMag').dataset.mag = draw.mag;
+    $('drawStay').setAttribute('aria-pressed', String(draw.stay)); $('drawLock').setAttribute('aria-pressed', String(draw.lockAll)); $('drawHide').setAttribute('aria-pressed', String(draw.hideAll));
+    objTree();
     $('drawGroup').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === draw.tool)));
     document.querySelectorAll('#railGroups [data-g]').forEach(b => b.setAttribute('aria-pressed', String(!!draw.tool && groupOf(draw.tool) === b.dataset.g)));
     $('drawDel').disabled = !draw.sel && !draw.list.length;
@@ -4140,7 +4265,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('dsNote').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { e.target.blur(); draw.sel = null; draw.sig = ''; markTools(); } });
   function finishDraw() {
     if (draw.pts.length < (TOOL_PTS[draw.tool] === 0 ? 2 : 1)) { draw.pts = []; return; }
-    const d = { id: Date.now().toString(36), type: draw.tool, pts: draw.pts }; if (SPAN.includes(d.type)) setPane(d, safeGet('pt-ta-span') || 'all'); if (d.type === 'barhl') d.all = true; draw.list.push(d); draw.sel = d; draw.pts = []; draw.tool = null; draw.hover = null; saveDraws(); markTools();
+    const d = { id: Date.now().toString(36), type: draw.tool, pts: draw.pts }; if (SPAN.includes(d.type)) setPane(d, safeGet('pt-ta-span') || 'all'); if (d.type === 'barhl') d.all = true; draw.list.push(d); draw.sel = draw.stay ? null : d; draw.pts = []; draw.tool = draw.stay ? d.type : null; draw.hover = null; saveDraws(); markTools();
     if (d.type === 'text' || d.type === 'note') $('dsNote').focus();
     if (d.type === 'bracket') setAngle(d, angleOf(d), true);
     draw.sig = '';
@@ -4163,7 +4288,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   // The drawing within 8 px of a point, the nearest first.
   function pick(x, y) {
     let best = null, bd = 8; const below = !inPrice(x, y);
-    for (const d of draw.list) for (const l of shapes(d, d.pts)) { if (below && !l.all) continue; const dd = hitDist(l, x, y); if (dd < bd) { bd = dd; best = d; } }
+    for (const d of shownDraws()) for (const l of shapes(d, d.pts)) { if (below && !l.all) continue; const dd = hitDist(l, x, y); if (dd < bd) { bd = dd; best = d; } }
     return best;
   }
   // Editing: press on a drawing and drag to move it, press on a handle of the selected one and drag to reshape it. The
@@ -4182,7 +4307,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       chart.applyOptions({ handleScroll: false, handleScale: false }); try { $('chart').setPointerCapture(e.pointerId); } catch (err) { /* synthetic */ }
       e.preventDefault(); e.stopPropagation(); return; }
     if (draw.tool || !state.rows.length || !inPlot(x, y)) return;
-    const h = handleAt(x, y), d = h >= 0 ? draw.sel : pick(x, y); if (!d) return;
+    const h = handleAt(x, y), d = h >= 0 ? draw.sel : pick(x, y); if (!d || locked(d)) return;   // a locked drawing: a click still selects it
     drag = { d, h, x0: x, y0: y, l0: chart.timeScale().coordinateToLogical(x), orig: d.pts.map(p => Object.assign({}, p)), moved: false };
     draw.sel = d; draw.sig = ''; markTools();
     chart.applyOptions({ handleScroll: false, handleScale: false });
@@ -4219,9 +4344,14 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   $('drawGroup').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.tool) { draw.tool = draw.tool === b.dataset.tool ? null : b.dataset.tool; draw.pts = []; draw.hover = null; draw.sel = null; }
+    else if (b.id === 'drawMag') { draw.mag = { off: 'weak', weak: 'strong', strong: 'off' }[draw.mag]; safeSet('pt-ta-mag', draw.mag); }
+    else if (b.id === 'drawStay') { draw.stay = !draw.stay; safeSet('pt-ta-stay', draw.stay ? '1' : '0'); }
+    else if (b.id === 'drawLock') { draw.lockAll = !draw.lockAll; safeSet('pt-ta-lockall', draw.lockAll ? '1' : '0'); }
+    else if (b.id === 'drawHide') { draw.hideAll = !draw.hideAll; safeSet('pt-ta-hideall', draw.hideAll ? '1' : '0'); if (draw.hideAll) draw.sel = null; }
     else if (b.id === 'drawDel') {
+      if (draw.sel && locked(draw.sel)) { draw.sig = ''; markTools(); return; }
       if (draw.sel) draw.list = draw.list.filter(d => d !== draw.sel);
-      else if (draw.list.length && confirm(tr(`Xóa tất cả ${draw.list.length} hình vẽ của ${state.sym}?`))) draw.list = [];
+      else if (draw.list.length && !draw.lockAll && confirm(tr(`Xóa tất cả ${draw.list.length} hình vẽ của ${state.sym}?`))) draw.list = draw.list.filter(d => d.lock);   // locked ones stay
       draw.sel = null; saveDraws();
     }
     draw.sig = ''; markTools();
@@ -4233,10 +4363,16 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     if (e.key === 'Escape' && draw.tool) { draw.tool = null; draw.pts = []; draw.hover = null; draw.sig = ''; markTools(); }
     else if (e.key === 'Escape' && draw.sel) { draw.sel = null; draw.sig = ''; markTools(); }
     if (e.key === 'Enter' && draw.tool && TOOL_PTS[draw.tool] === 0) finishDraw();
-    if ((e.key === 'Delete' || e.key === 'Backspace') && draw.sel) { draw.list = draw.list.filter(d => d !== draw.sel); draw.sel = null; saveDraws(); markTools(); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && draw.sel && !locked(draw.sel)) { draw.list = draw.list.filter(d => d !== draw.sel); draw.sel = null; saveDraws(); markTools(); }
     if ((e.key === 'r' || e.key === 'R') && draw.sel && ANGLED.includes(draw.sel.type)) { setAngle(draw.sel, angleOf(draw.sel) + (e.shiftKey ? -15 : 15)); markTools(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyC' && draw.sel && !String(window.getSelection())) { draw.clip = JSON.parse(JSON.stringify(draw.sel)); e.preventDefault(); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.code === 'KeyV' && draw.clip) {
+      const c = JSON.parse(JSON.stringify(draw.clip)); c.id = Date.now().toString(36); delete c.lock; delete c.hide; moveBy(c, c.pts, 5, 0); draw.clip = JSON.parse(JSON.stringify(c));
+      draw.list.push(c); draw.sel = c; saveDraws(); markTools(); e.preventDefault(); return; }
+    const altTool = e.altKey && !e.ctrlKey && !e.metaKey && { KeyT: 'trend', KeyH: 'hline', KeyV: 'vline', KeyJ: 'hray', KeyF: 'fib', KeyC: 'cross' }[e.code];   // TradingView's keys
+    if (altTool && TN[altTool]) { e.preventDefault(); draw.tool = draw.tool === altTool ? null : altTool; draw.pts = []; draw.hover = null; draw.sel = null; draw.sig = ''; markTools(); return; }
     const nudge = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -2], ArrowDown: [0, 2] }[e.key];
-    if (nudge && draw.sel) { e.preventDefault(); moveBy(draw.sel, draw.sel.pts, nudge[0], nudge[1]); saveDraws(); }
+    if (nudge && draw.sel && !locked(draw.sel)) { e.preventDefault(); moveBy(draw.sel, draw.sel.pts, nudge[0], nudge[1]); saveDraws(); }
   });
   // the drawings for the PNG export, as an image
   function drawingImage() {
@@ -4246,6 +4382,35 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
   }
 
+  // Object tree: every drawing of this symbol and interval, to select, hide, lock or delete one
+  function objTree() {
+    const sec = document.querySelector('#dock > section[data-w="obj"]'); if (!sec || $('dock').hidden || sec.hidden) return;
+    $('objCount').textContent = draw.list.length ? String(draw.list.length) : '';
+    $('objBody').innerHTML = draw.list.length ? draw.list.map((d, i) => `<div class="objrow${d === draw.sel ? ' on' : ''}${d.hide ? ' off' : ''}" data-oi="${i}"><span>${esc(TN[d.type] ? TN[d.type][EN ? 1 : 0] : d.type)}${d.note ? ' · ' + esc(d.note) : ''}</span>`
+      + `<button type="button" data-oa="hide" aria-pressed="${!!d.hide}" title="${tr(d.hide ? 'Hiện' : 'Ẩn')}">${d.hide ? '◌' : '●'}</button><button type="button" data-oa="lock" aria-pressed="${!!d.lock}" title="${tr(d.lock ? 'Mở khóa' : 'Khóa')}">${d.lock ? '🔒' : '🔓'}</button>`
+      + `<button type="button" data-oa="del" title="${tr('Xóa')}">×</button></div>`).join('') : '<span class="k">Chưa có hình vẽ.</span>';
+  }
+  $('objBody').addEventListener('click', e => {
+    const r = e.target.closest('[data-oi]'); if (!r) return; const d = draw.list[+r.dataset.oi]; if (!d) return; const a = e.target.closest('[data-oa]');
+    if (a && a.dataset.oa === 'hide') { d.hide = !d.hide; if (d.hide && draw.sel === d) draw.sel = null; }
+    else if (a && a.dataset.oa === 'lock') d.lock = !d.lock;
+    else if (a && a.dataset.oa === 'del') { if (locked(d)) return; draw.list = draw.list.filter(x => x !== d); if (draw.sel === d) draw.sel = null; }
+    else { if (d.hide || draw.hideAll) return; draw.sel = d;   // bring it into view
+      const i = barOf(d.pts[0]), vr = chart.timeScale().getVisibleLogicalRange();
+      if (vr && (i < vr.from || i > vr.to)) { const w = vr.to - vr.from; chart.timeScale().setVisibleLogicalRange({ from: i - w / 2, to: i + w / 2 }); } }
+    draw.sig = ''; if (a) saveDraws(); markTools();
+  });
+  // Data window: the bar under the crosshair and every indicator's value there
+  function dwRender(i) {
+    const sec = document.querySelector('#dock > section[data-w="dw"]'), rows = state.rows; if (!sec || $('dock').hidden || sec.hidden || sec.classList.contains('folded') || !rows.length) return;
+    i = Math.max(0, Math.min(rows.length - 1, i)); const r = rows[i], p = i ? rows[i - 1] : null, row = (k, v) => `<span class="k">${esc(k)}</span><b>${v}</b>`;
+    let h = row(state.sym, fmtDate(r.t)) + row('Mở cửa', fmtP(r.o)) + row('Cao', fmtP(r.h)) + row('Thấp', fmtP(r.l)) + row('Đóng cửa', fmtP(r.c))
+      + (p ? row('Thay đổi', `${r.c >= p.c ? '+' : ''}${fmtP(r.c - p.c)} (${((r.c / p.c - 1) * 100).toFixed(2)}%)`) : '') + row('Khối lượng', fmtVol(r.v));
+    for (const o of state.out) { if (!o.inst.on) continue; const outs = o.out.filter(x => x.values); if (!outs.length) continue;
+      const name = o.inst.name || o.d.label(o.p);
+      outs.forEach((x, k) => { h += row(outs.length > 1 ? `${name} · ${x.tag || k + 1}` : name, fmtV(x.values[i], o.d.fmt)); }); }
+    $('dwBody').innerHTML = h;
+  }
   // ---------- status / overlay ----------
   function setStatus(kind, text) { $('status').dataset.state = kind; $('statusText').textContent = text; }
   function showOverlay(title, body, actions) {
@@ -4903,12 +5068,12 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   function setDock(on) {
     $('dock').hidden = $('dockGrip').hidden = !on; $('dockBtn').setAttribute('aria-pressed', String(on)); document.querySelector('.chartrow').classList.toggle('dockon', on);
     safeSet('pt-ta-dock', on ? '1' : '0');
-    if (on) { wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
+    if (on) { wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); objTree(); dwRender(state.rows.length - 1); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
   }
   $('dockBtn').addEventListener('click', () => setDock($('dock').hidden));
   // widgets in the panel: order, folded, closed and height, kept per browser as pt-ta-dockl
   { const dock = $('dock'), secs = () => [...dock.querySelectorAll(':scope > section[data-w]')], W = Object.fromEntries(secs().map(x => [x.dataset.w, x]));
-    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', pat: 'Mô hình giá' };
+    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', dw: 'Cửa sổ dữ liệu', obj: 'Hình vẽ', pat: 'Mô hình giá' };
     let L = {}; try { L = JSON.parse(safeGet('pt-ta-dockl') || '{}') || {}; } catch (e) {}
     L = { order: Array.isArray(L.order) ? L.order : [], fold: L.fold || {}, hide: L.hide || {}, h: L.h || {} };
     const save = () => { L.order = secs().map(x => x.dataset.w); safeSet('pt-ta-dockl', JSON.stringify(L)); };
@@ -5212,6 +5377,11 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const tr_ = t => tr(t);
   function patList() {
     $('patBtn').setAttribute('aria-pressed', String(pat.on));
+    // the live forms beside the indicator chips, with their match: visible without the side panel
+    $('patChips').hidden = !pat.on;
+    $('patChips').innerHTML = !pat.on ? '' : pat.live.length ? pat.live.map((x, i) => `<button type="button" class="pchip" data-pi="${i}" title="Bấm để xem mô hình trên biểu đồ">`
+      + `<b>${esc(PAT_NAME[x.f.id])}</b> khớp ${Math.round(x.f.sim * 100)}% <span class="k">· ${esc(x.lab)} · ${x.tr.st === 'forming' ? 'đang hình thành' : (x.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống')}</span></button>`).join('')
+      : '<span class="pchip k" style="cursor:default">Không có mô hình nào đang hình thành</span>';
     if ($('dock').hidden) return;
     if (!pat.on) { $('patBody').innerHTML = '<span class="k">Bật nút Mô hình để tìm mô hình giá trên biểu đồ.</span>'; return; }
     const rows = state.rows, done = { target: ' · đã đạt mục tiêu', stop: ' · đã chạm cắt lỗ', time: ' · hết thời hạn' };
@@ -5257,7 +5427,15 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   });
   $('prOut').addEventListener('click', e => { const r = e.target.closest('[data-pr]'); if (!r) return; const c = pat.prRes[+r.dataset.pr];
     pat.pick = null; pat.extra = c; patShow(); patPeriodList(); patList(); patZoom(c); });
-  $('patBtn').addEventListener('click', () => { pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; pat.pick = null; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
+  $('patChips').addEventListener('click', e => { const r = e.target.closest('[data-pi]'); if (r && pat.live[+r.dataset.pi]) patZoom(pat.live[+r.dataset.pi]); });
+  function patReveal() {   // Patterns on: the panel open at its pattern section, unfolded
+    if (EMBED != null) return; if ($('dock').hidden) setDock(true);
+    const sec = document.querySelector('#dock > section[data-w="pat"]'); if (!sec) return;
+    if (sec.hidden) { $('dockAdd').value = 'pat'; $('dockAdd').dispatchEvent(new Event('change')); }
+    if (sec.classList.contains('folded')) sec.querySelector('[data-wact="fold"]').click();
+    sec.scrollIntoView({ block: 'nearest' });
+  }
+  $('patBtn').addEventListener('click', () => { if (!pat.on) setTimeout(patReveal); pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; pat.pick = null; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
   $('patBody').addEventListener('click', e => {   // a live pattern: bring it into view; a row of the record: draw its breakouts one at a time
     const r = e.target.closest('[data-pi]'), t = e.target.closest('[data-pid]'), b = e.target.closest('[data-act]');
     if (r) { const x = pat.live[+r.dataset.pi]; if (x) patZoom(x); return; }
