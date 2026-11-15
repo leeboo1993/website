@@ -97,10 +97,22 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 #toasts { position: fixed; top: 12px; right: 12px; z-index: 60; display: flex; flex-direction: column; gap: 6px; max-width: min(360px, calc(100vw - 24px)); }
 #toasts .toast { background: var(--navy); color: var(--white); border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
 /* side panel */
-.chartrow.dockon { grid-template-columns: 34px minmax(0, 1fr) 270px; }
+.chartrow.dockon { grid-template-columns: 34px minmax(0, 1fr) 0 var(--dockw, 270px); }
+/* the handle sits in a zero-width column and spans both gaps around it */
+.dockgrip { width: 12px; margin-left: -6px; align-self: stretch; cursor: col-resize; position: relative; touch-action: none; z-index: 2; }
+.dockgrip::after { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; border-radius: 1px; background: transparent; transition: background .12s; }
+.dockgrip:hover::after, .dockgrip.on::after, .dockgrip:focus-visible::after { background: var(--accent); } .dockgrip:focus-visible { outline: none; }
 .dock { display: flex; flex-direction: column; gap: 8px; font-size: 12px; max-height: max(560px, min(82vh, 920px)); overflow-y: auto; }
 .dock section { border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
 .dock h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+/* widgets, OpenBB-style: drag the header to reorder, fold or close from its buttons, drag the bottom edge for height */
+.dockbar { display: flex; align-items: center; gap: 6px; } .dockbar > span { flex: 1; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.dockbar select { font-size: 11px; max-width: 130px; } .dockbar button, .dock > section > h3 button { padding: 0 5px; border-color: transparent; background: transparent; color: var(--muted); line-height: 1.2; cursor: pointer; }
+.dockbar button:hover, .dock > section > h3 button:hover { color: var(--ink, inherit); background: var(--mist); }
+.dock > section { resize: vertical; overflow: auto; min-height: 34px; flex-shrink: 0; }
+.dock > section > h3 { display: flex; align-items: center; gap: 4px; cursor: move; user-select: none; touch-action: none; } .dock > section > h3 .wgap { flex: 1; }
+.dock > section.folded { height: auto !important; resize: none; } .dock > section.folded > :not(h3) { display: none; } .dock > section.folded > h3 { margin-bottom: 0; }
+.dock > section.dragging { opacity: .4; }
 .dock .k { color: var(--muted); font-weight: 400; } .dock .up { color: var(--good); } .dock .dn { color: var(--bad); }
 .wlform { display: flex; gap: 4px; margin-bottom: 6px; } .wlform input { flex: 1; min-width: 0; }
 .wlrow { display: grid; grid-template-columns: 1fr auto 62px 18px; gap: 6px; align-items: baseline; padding: 4px 2px; cursor: pointer; border-radius: 4px; }
@@ -115,7 +127,10 @@ header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16p
 .patrow { padding: 5px 2px; border-bottom: 1px solid var(--line); cursor: pointer; } .patrow:last-child { border-bottom: 0; } .patrow:hover { background: var(--mist); }
 .patrow .k { font-size: 11px; } .patrow .st { font-size: 11px; color: var(--muted); }
 .pattab { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; } .pattab td, .pattab th { padding: 2px 3px; text-align: right; } .pattab td:first-child, .pattab th:first-child { text-align: left; }
-.pattab th { color: var(--muted); font-weight: 500; }
+.pattab th { color: var(--muted); font-weight: 500; white-space: nowrap; } .pattab td { white-space: nowrap; }
+.pattab tr[data-pid] { cursor: pointer; } .pattab tr[data-pid]:hover td, .pattab tr.on td { background: var(--mist); }
+.patpick { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
+.patpick span { flex: 1; } .patpick button { padding: 0 6px; } .pathelp { margin-top: 6px; font-size: 11px; line-height: 1.4; }
 .ctx.replaying > .chips, .ctx.replaying > #drawStyle { display: none !important; }
 /* full screen: the chart row alone */
 .chartrow:fullscreen { background: var(--white); padding: 10px; }
@@ -134,7 +149,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .25); }
 .keysdlg table { border-collapse: collapse; margin-bottom: 10px; font-size: 13px; } .keysdlg td { padding: 4px 12px 4px 0; } .keysdlg td:first-child { font-weight: 600; white-space: nowrap; }
 .keysdlg h3 { margin: 0 0 8px; }
 /* a cell of the multi-chart grid: chart and toolbar only */
-html.embed header.top, html.embed .fold, html.embed .below, html.embed .dock, html.embed #dockBtn, html.embed #layoutSel, html.embed .bn { display: none !important; }
+html.embed header.top, html.embed .fold, html.embed .below, html.embed .dock, html.embed .dockgrip, html.embed #dockBtn, html.embed #layoutSel, html.embed .bn { display: none !important; }
 html.embed[data-theme="dark"] :is(.wrap, #toasts, #picker, dialog, .chartrow:fullscreen) { filter: none; }   /* the grid page inverts once, for every cell */
 html.embed[data-theme="dark"] body { background: var(--white); }
 body:has(.gridhost) { padding: 0; }
@@ -159,7 +174,7 @@ html.embed .stage, html.embed #chart { height: 100% !important; min-height: 160p
   .rail .flyout { left: 0; right: 0; top: 100%; min-width: 0; max-height: 60vh; }
   #chart { height: max(420px, calc(100svh - 130px)); }
   .bar { position: relative; } #alertMenu { position: static; } .alertbox { left: 0; right: 0; width: auto; }
-  .chartrow.dockon { grid-template-columns: 1fr; } .dock { max-height: none; }
+  .chartrow.dockon { grid-template-columns: 1fr; } .dock { max-height: none; } .dockgrip { display: none; }
 }
 .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .group .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 4px; }
@@ -449,15 +464,17 @@ tbody tr[data-i]:hover { background: var(--panel); }
         </div>
       </div>
     </div>
+    <div class="dockgrip" id="dockGrip" role="separator" aria-orientation="vertical" tabindex="0" title="Kéo để đổi độ rộng bảng phụ (bấm đúp: về mặc định)" hidden></div>
     <aside class="dock" id="dock" hidden>
-      <section>
+      <div class="dockbar"><span>Bảng phụ</span><select id="dockAdd" aria-label="Thêm lại bảng đã đóng" hidden></select><button type="button" id="dockClose" title="Đóng bảng phụ" aria-label="Đóng bảng phụ">×</button></div>
+      <section data-w="wl">
         <h3>Danh mục theo dõi</h3>
         <form id="wlForm" class="wlform" autocomplete="off"><input id="wlInput" type="text" maxlength="20" placeholder="Thêm mã…" aria-label="Thêm mã vào danh mục"><button type="submit" aria-label="Thêm">+</button></form>
         <div id="wlList"></div>
       </section>
-      <section><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
-      <section><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
-      <section><h3>Mô hình giá</h3><div id="patBody"></div></section>
+      <section data-w="si"><h3>Thông tin mã <span id="siSym" class="k"></span></h3><div id="siBody"></div></section>
+      <section data-w="ob"><h3>Sổ lệnh <span id="obSrc" class="k"></span></h3><div id="obBody"></div></section>
+      <section data-w="pat"><h3>Mô hình giá</h3><div id="patBody"></div></section>
     </aside>
   </div>
 
@@ -1215,6 +1232,27 @@ Lần => Times
 Chạm cắt lỗ => Hit stop
 LN TB => Avg ret.
 Chưa đủ lịch sử. => Not enough history.
+Thêm lại bảng đã đóng => Bring back a closed widget
++ Thêm bảng… => + Add widget…
+Đóng bảng phụ => Close the side panel
+Thu gọn / mở rộng => Fold / unfold
+Đóng bảng này => Close this widget
+Kéo để đổi độ rộng bảng phụ (bấm đúp: về mặc định) => Drag to resize the side panel (double-click: default)
+Số lần phá vỡ trong giai đoạn trên => Breakouts in the period above
+Giá chạm mục tiêu trước khi chạm cắt lỗ => Price reached the target before the stop
+Giá chạm cắt lỗ trước => Price hit the stop first
+Lãi/lỗ trung bình mỗi lần, đến khi thoát => Average gain or loss per breakout, to the exit
+Đạt MT => Target
+Chạm CL => Stop
+Lần trước => Previous
+Lần sau => Next
+Bỏ chọn => Clear
+Bấm một dòng để vẽ từng lần lên biểu đồ (‹ › để xem lần khác). => Click a row to draw each breakout on the chart (‹ › for the others).
+Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). => Swing scales: the highest high or lowest low within ±3 bars (short), ±7 (medium), ±15 (long).
+Mục tiêu = chiều cao mô hình tính từ điểm phá vỡ; cắt lỗ = cạnh đối diện hoặc đỉnh, đáy của mô hình; chưa tính phí. => Target = the pattern's height from the breakout; stop = the opposite side or the pattern's extreme; no costs.
+Đổi khung nến (D, W, M) để xem giai đoạn khác. => Change the candle size (D, W, M) for another period.
+đạt mục tiêu => target reached
+chạm cắt lỗ => stop hit
 đã đạt mục tiêu => target reached
 đã chạm cắt lỗ => stop hit
 hết thời hạn => timed out
@@ -4824,11 +4862,58 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       + `<div class="obmid">${spread != null ? `${fmtP(bids[0][0])} <span class="k">chênh lệch ${fmtP(spread)}</span>` : ''}</div>` + bids.map(v => row(v, 'bid')).join('');
   }
   function setDock(on) {
-    $('dock').hidden = !on; $('dockBtn').setAttribute('aria-pressed', String(on)); document.querySelector('.chartrow').classList.toggle('dockon', on);
+    $('dock').hidden = $('dockGrip').hidden = !on; $('dockBtn').setAttribute('aria-pressed', String(on)); document.querySelector('.chartrow').classList.toggle('dockon', on);
     safeSet('pt-ta-dock', on ? '1' : '0');
     if (on) { wlRender(); wlRefresh(); wlStreams(); siReset(state.sym); patList(); } else { wlStreams(); if (si.bookStop) si.bookStop(); si.bookStop = null; }
   }
   $('dockBtn').addEventListener('click', () => setDock($('dock').hidden));
+  // widgets in the panel: order, folded, closed and height, kept per browser as pt-ta-dockl
+  { const dock = $('dock'), secs = () => [...dock.querySelectorAll(':scope > section[data-w]')], W = Object.fromEntries(secs().map(x => [x.dataset.w, x]));
+    const NAME = { wl: 'Danh mục theo dõi', si: 'Thông tin mã', ob: 'Sổ lệnh', pat: 'Mô hình giá' };
+    let L = {}; try { L = JSON.parse(safeGet('pt-ta-dockl') || '{}') || {}; } catch (e) {}
+    L = { order: Array.isArray(L.order) ? L.order : [], fold: L.fold || {}, hide: L.hide || {}, h: L.h || {} };
+    const save = () => { L.order = secs().map(x => x.dataset.w); safeSet('pt-ta-dockl', JSON.stringify(L)); };
+    const addMenu = () => { const off = Object.keys(W).filter(k => L.hide[k]); $('dockAdd').hidden = !off.length;
+      $('dockAdd').innerHTML = '<option value="">+ Thêm bảng…</option>' + off.map(k => `<option value="${k}">${esc(NAME[k])}</option>`).join(''); };
+    const apply = x => { const k = x.dataset.w; x.hidden = !!L.hide[k]; x.classList.toggle('folded', !!L.fold[k]); x.style.height = L.h[k] && !L.fold[k] ? L.h[k] : '';
+      x.querySelector('[data-wact="fold"]').textContent = L.fold[k] ? '+' : '–'; };
+    for (const k of L.order) if (W[k]) dock.appendChild(W[k]);
+    for (const x of secs()) {
+      x.querySelector('h3').insertAdjacentHTML('beforeend', '<span class="wgap"></span><button type="button" data-wact="fold" title="Thu gọn / mở rộng" aria-label="Thu gọn / mở rộng"></button><button type="button" data-wact="close" title="Đóng bảng này" aria-label="Đóng bảng này">×</button>');
+      apply(x);
+      new ResizeObserver(() => { if (x.style.height && !x.classList.contains('folded') && L.h[x.dataset.w] !== x.style.height) { L.h[x.dataset.w] = x.style.height; save(); } }).observe(x);
+    }
+    addMenu();
+    dock.addEventListener('click', e => { const b = e.target.closest('[data-wact]'); if (!b) return; const x = b.closest('section'), k = x.dataset.w;
+      if (b.dataset.wact === 'fold') L.fold[k] = !L.fold[k]; else L.hide[k] = true; apply(x); addMenu(); save(); });
+    dock.addEventListener('dblclick', e => { const h = e.target.closest('h3'); if (h && h.parentNode.parentNode === dock && !e.target.closest('button')) { const x = h.parentNode; delete L.h[x.dataset.w]; apply(x); save(); } });
+    $('dockAdd').addEventListener('change', e => { const k = e.target.value; if (!k) return; delete L.hide[k]; apply(W[k]); W[k].scrollIntoView({ block: 'nearest' }); addMenu(); save(); });
+    $('dockClose').addEventListener('click', () => setDock(false));
+    // drag a header: the section follows the pointer's place among the others (pointer events, so touch works too)
+    dock.addEventListener('pointerdown', e => {
+      const h = e.target.closest('h3'); if (!h || h.parentNode.parentNode !== dock || e.target.closest('button') || e.button) return;
+      const x = h.parentNode; let moved = false;   // no pointer capture: moving the section in the DOM would drop it
+      const mv = ev => { if (!moved && Math.abs(ev.clientY - e.clientY) < 5) return; moved = true; x.classList.add('dragging');
+        const o = secs().filter(y => y !== x && !y.hidden).find(y => { const r = y.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+        dock.insertBefore(x, o || null); };
+      const up = () => { document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+        x.classList.remove('dragging'); if (moved) save(); };
+      document.addEventListener('pointermove', mv); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+    });
+  }
+  // panel width: drag the handle on its left edge (arrow keys too); double-click goes back to 270 px. Kept per browser.
+  const setDockW = w => { w = Math.round(Math.min(Math.max(w, 220), Math.max(220, Math.min(720, innerWidth * 0.6))));
+    document.querySelector('.chartrow').style.setProperty('--dockw', w + 'px'); return w; };
+  if (+safeGet('pt-ta-dockw')) setDockW(+safeGet('pt-ta-dockw'));
+  { const g = $('dockGrip'), keep = () => safeSet('pt-ta-dockw', String($('dock').offsetWidth));
+    g.addEventListener('pointerdown', e => {
+      e.preventDefault(); const x0 = e.clientX, w0 = $('dock').offsetWidth; g.setPointerCapture(e.pointerId); g.classList.add('on');
+      const mv = ev => setDockW(w0 + x0 - ev.clientX), up = () => { g.removeEventListener('pointermove', mv); g.classList.remove('on'); keep(); };
+      g.addEventListener('pointermove', mv); g.addEventListener('lostpointercapture', up, { once: true });
+    });
+    g.addEventListener('dblclick', () => { setDockW(270); keep(); });
+    g.addEventListener('keydown', e => { const d = { ArrowLeft: 20, ArrowRight: -20 }[e.key]; if (d) { e.preventDefault(); setDockW($('dock').offsetWidth + d); keep(); } });
+  }
 
   // ---------- bar replay ----------
   // Pick a past session; the chart shows the bars up to it and steps forward one bar at a time. Indicators are
@@ -4888,7 +4973,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
   const PAT_NAME = { dtop: 'Hai đỉnh', dbot: 'Hai đáy', ttop: 'Ba đỉnh', tbot: 'Ba đáy', hs: 'Vai đầu vai', ihs: 'Vai đầu vai ngược', atri: 'Tam giác tăng',
     dtri: 'Tam giác giảm', stri: 'Tam giác cân', rwedge: 'Nêm tăng', fwedge: 'Nêm giảm', chup: 'Kênh tăng', chdn: 'Kênh giảm', rect: 'Hình chữ nhật', broad: 'Mở rộng' };
   const PAT_SCALE = [[3, 'sóng ngắn'], [7, 'sóng vừa'], [15, 'sóng dài']];
-  const pat = { on: safeGet('pt-ta-pat') === '1', shown: [], live: [], stats: null, statKey: '', ver: 0 };
+  const pat = { on: safeGet('pt-ta-pat') === '1', shown: [], live: [], stats: null, statKey: '', ver: 0, pick: null };   // pick: {id, i} a past breakout on show
   function patATR(R) {
     const n = R.c.length, a = new Array(n).fill(null); let rma = null;   // Wilder's ATR(14) for (let i = 1; i < n; i++) { const tr = Math.max(R.h[i] - R.l[i], Math.abs(R.h[i] - R.c[i - 1]), Math.abs(R.l[i] - R.c[i - 1])); rma = rma == null ? tr : (rma * 13 + tr) / 14; a[i] = rma; }
     a[0] = a[1]; return a;
@@ -4926,8 +5011,10 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       if (e < m - 1) break;
       const W = S.slice(e - m + 1, e + 1), H = W.filter(s => s.t === 'H'), L = W.filter(s => s.t === 'L'); if (H.length < 2 || L.length < 2) continue;
       const up = patFit(H), lo = patFit(L), i0 = W[0].i, i1 = W[W.length - 1].i; if (i1 - i0 < 10) continue;
+      const iu = H[0].i, il = L[0].i, is = Math.max(iu, il);   // each line from its own first touch; the height where both exist
+      if (Math.min(H[H.length - 1].i - iu, L[L.length - 1].i - il) < 0.4 * (i1 - i0)) continue;   // a line on two close touches is an extrapolation, not a side
       if (H.some(s => !near(s.p, up(s.i))) || L.some(s => !near(s.p, lo(s.i)))) continue;
-      const w0 = up(i0) - lo(i0), w1 = up(i1) - lo(i1); if (w0 <= A || w1 <= 0.5 * A) continue;
+      const w0 = up(is) - lo(is), w1 = up(i1) - lo(i1); if (w0 <= A || w1 <= 0.5 * A) continue;
       const du = (up(i1) - up(i0)) / A, dl = (lo(i1) - lo(i0)) / A, flat = x => Math.abs(x) < 1, conv = w1 < 0.7 * w0, wide = w1 > 1.4 * w0;
       let id = null, dir = 0;
       if (flat(du) && dl >= 1 && conv) { id = 'atri'; dir = 1; }
@@ -4939,7 +5026,7 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       else if (flat(du) && flat(dl)) id = 'rect';
       else if (!conv && !wide && du >= 1 && dl >= 1) id = 'chup';
       else if (!conv && !wide && du <= -1 && dl <= -1) id = 'chdn';
-      if (id) { out.push({ id, dir, swings: W, up, lo, i0, i1, height: w0, lines: true }); break; }
+      if (id) { out.push({ id, dir, swings: W, up, lo, i0, i1, iu, il, height: w0, lines: true }); break; }
     }
     return out;
   }
@@ -4957,11 +5044,11 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
       const entry = R.c[j], target = entry + dir * f.height, horizon = Math.max(20, 3 * span);
       for (let x = j + 1; x < n && x <= j + horizon; x++) {
         const hitStop = dir > 0 ? R.l[x] <= stop : R.h[x] >= stop, hitTgt = dir > 0 ? R.h[x] >= target : R.l[x] <= target;
-        if (hitStop) return { st: 'stop', j, dir, entry, target, stop, ret: dir * (stop / entry - 1) };
-        if (hitTgt) return { st: 'target', j, dir, entry, target, stop, ret: dir * (target / entry - 1) };
+        if (hitStop) return { st: 'stop', j, x, dir, entry, target, stop, ret: dir * (stop / entry - 1) };
+        if (hitTgt) return { st: 'target', j, x, dir, entry, target, stop, ret: dir * (target / entry - 1) };
       }
       const xe = Math.min(n - 1, j + horizon);
-      return { st: xe >= j + horizon ? 'time' : 'open', j, dir, entry, target, stop, ret: dir * (R.c[xe] / entry - 1) };
+      return { st: xe >= j + horizon ? 'time' : 'open', j, x: xe, dir, entry, target, stop, ret: dir * (R.c[xe] / entry - 1) };
     }
     return { st: start + wait < n ? 'none' : 'forming' };
   }
@@ -4971,16 +5058,16 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const R = { o: rows.map(r => r.o), h: rows.map(r => r.h), l: rows.map(r => r.l), c: rows.map(r => r.c) }, A = patATR(R);
     const key = `${state.sym}|${state.tf}|${n}|${rows[0].t}`, live = [];
     const stats = pat.statKey === key ? null : {};
+    const seen = new Set();   // a breakout counted once, however many windows or scales saw it
     for (const [k, lab] of PAT_SCALE) {
       const S = patSwings(R, k); if (S.length < 3) continue;
-      let lastBreak = {};
       for (let e = 2; e < S.length; e++) {
         const forms = patForms(S, e, A[S[e].i]);
         for (const f of forms) {
           const tr = patTrade(f, R, k);
-          if (stats && tr.j != null && lastBreak[f.id] !== tr.j && tr.st !== 'open') {   // a breakout counted once, however many windows saw it
-            lastBreak[f.id] = tr.j; const s = stats[f.id] = stats[f.id] || { n: 0, tgt: 0, stop: 0, ret: 0 };
-            s.n++; if (tr.st === 'target') s.tgt++; if (tr.st === 'stop') s.stop++; s.ret += tr.ret;
+          if (stats && tr.j != null && tr.st !== 'open' && !seen.has(f.id + tr.j)) {
+            seen.add(f.id + tr.j); const s = stats[f.id] = stats[f.id] || { n: 0, tgt: 0, stop: 0, ret: 0, ev: [] };
+            s.n++; s.ev.push({ f, k, lab, tr }); if (tr.st === 'target') s.tgt++; if (tr.st === 'stop') s.stop++; s.ret += tr.ret;
           }
           // on screen: the latest forms of this scale that are forming, or broke out within the last 2k+3 bars
           if (e >= S.length - 2 && (tr.st === 'forming' || (tr.j != null && tr.j >= n - (2 * k + 3))) && !live.some(x => (x.k === k && x.f.lines === f.lines) || (x.f.id === f.id && Math.abs(x.f.swings[0].i - f.swings[0].i) < 5)))   // one per scale and kind; the same form seen at two scales once
@@ -4988,21 +5075,28 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
         }
       }
     }
-    if (stats) { pat.stats = stats; pat.statKey = key; }
-    pat.live = live; pat.shown = live.flatMap(patShapes); pat.ver++; patList();
+    if (stats) { for (const s of Object.values(stats)) s.ev.sort((a, b) => a.tr.j - b.tr.j); pat.stats = stats; pat.statKey = key;
+      const p = pat.statKey.startsWith(`${state.sym}|${state.tf}|`) && pat.pick, ev = p && stats[p.id] && stats[p.id].ev; pat.pick = ev ? { id: p.id, i: Math.min(p.i, ev.length - 1) } : null; }
+    pat.live = live; patShow(); patList();
+  }
+  const patPicked = () => pat.pick && pat.stats && pat.stats[pat.pick.id] ? pat.stats[pat.pick.id].ev[pat.pick.i] : null;
+  function patShow() { const p = patPicked(); pat.shown = pat.live.flatMap(patShapes).concat(p && !pat.live.some(x => x.tr.j === p.tr.j && x.f.id === p.f.id) ? patShapes(p) : []); pat.ver++; }
+  function patZoom(x) {   // the form from its first swing to the end of its trade (or today)
+    const n = state.rows.length, i0 = x.f.swings[0].i, i1 = x.tr.x != null ? x.tr.x : n - 1, pad = Math.max(10, Math.round((i1 - i0) * 0.25));
+    chart.timeScale().setVisibleLogicalRange({ from: i0 - pad, to: Math.min(i1 + pad, n - 1 + pad) });
   }
   function patShapes({ f, k, lab, tr }) {   // pseudo-drawings in the page's own drawing styles
     const rows = state.rows, n = rows.length, P = (i, p) => ptAt(i, p), sw = f.swings, i0 = sw[0].i, i1 = sw[sw.length - 1].i;
     const end = tr.j != null ? tr.j : Math.min(n - 1 + Math.round((i1 - i0) * 0.3), i1 + (i1 - i0)), out = [];
     const name = `${tr_(PAT_NAME[f.id])} · ${tr_(lab)}`;
     const seg = (a, b, pa, pb, c, ls, note) => out.push({ type: 'trend', pts: [P(a, pa), P(b, pb)], c, ls, nonum: true, note, w: 1.5 });
-    if (f.lines) { seg(i0, end, f.up(i0), f.up(end), 'navy', 'solid', name); seg(i0, end, f.lo(i0), f.lo(end), 'navy', 'solid'); }
+    if (f.lines) { seg(f.iu, end, f.up(f.iu), f.up(end), 'navy', 'solid', name); seg(f.il, end, f.lo(f.il), f.lo(end), 'navy', 'solid'); }
     else {
       for (let x = 0; x < sw.length - 1; x++) seg(sw[x].i, sw[x + 1].i, sw[x].p, sw[x + 1].p, 'grey', 'solid');
       const nk = sw[1]; seg(nk.i, end, f.neck(nk.i), f.neck(end), 'navy', 'dash', name);
     }
     if (tr.j != null) {   // after a breakout: target and stop, drawn forward from the breakout bar
-      const a = tr.j, b = tr.j + Math.max(8, Math.round((i1 - i0) / 2));
+      const a = tr.j, b = Math.max(tr.x != null ? tr.x : 0, tr.j + Math.max(8, Math.round((i1 - i0) / 2)));   // to the exit bar when there is one
       seg(a, b, tr.target, tr.target, 'accent', 'dash', `${tr_('Mục tiêu')} ${fmtP(tr.target)}`);
       seg(a, b, tr.stop, tr.stop, 'grey', 'dash', `${tr_('Cắt lỗ')} ${fmtP(tr.stop)}`);
     }
@@ -5018,17 +5112,28 @@ Cảnh báo lưu trong trình duyệt này và chỉ báo khi trang đang mở. 
     const now = pat.live.length ? pat.live.map((x, i) => `<div class="patrow" data-pi="${i}"><b>${esc(PAT_NAME[x.f.id])}</b> <span class="k">${esc(x.lab)}, ${x.f.swings[x.f.swings.length - 1].i - x.f.swings[0].i} nến</span>`
       + `<div class="st">${esc(st(x))}${x.tr.j != null ? ` · Mục tiêu ${fmtP(x.tr.target)} · Cắt lỗ ${fmtP(x.tr.stop)}` : ''}</div></div>`).join('')
       : '<span class="k">Không có mô hình nào đang hình thành ở ba khung sóng.</span>';
-    const S = pat.stats || {}, ids = Object.keys(S).sort((a, b) => S[b].n - S[a].n);
-    const tab = ids.length ? `<table class="pattab"><tr><th>Mô hình</th><th>Lần</th><th>Đạt mục tiêu</th><th>Chạm cắt lỗ</th><th>LN TB</th></tr>`
-      + ids.map(id => { const s = S[id]; return `<tr><td>${esc(PAT_NAME[id])}</td><td>${s.n}</td><td>${Math.round(s.tgt / s.n * 100)}%</td><td>${Math.round(s.stop / s.n * 100)}%</td><td>${(s.ret / s.n * 100).toFixed(1)}%</td></tr>`; }).join('') + '</table>'
+    const S = pat.stats || {}, ids = Object.keys(S).sort((a, b) => S[b].n - S[a].n), p = patPicked(), pc = x => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`;
+    const tab = ids.length ? `<table class="pattab"><tr><th>Mô hình</th><th title="Số lần phá vỡ trong giai đoạn trên">Lần</th><th title="Giá chạm mục tiêu trước khi chạm cắt lỗ">Đạt MT</th><th title="Giá chạm cắt lỗ trước">Chạm CL</th><th title="Lãi/lỗ trung bình mỗi lần, đến khi thoát">LN TB</th></tr>`
+      + ids.map(id => { const s = S[id]; return `<tr data-pid="${id}"${p && pat.pick.id === id ? ' class="on"' : ''}><td>${esc(PAT_NAME[id])}</td><td>${s.n}</td><td>${Math.round(s.tgt / s.n * 100)}%</td><td>${Math.round(s.stop / s.n * 100)}%</td><td>${pc(s.ret / s.n)}</td></tr>`; }).join('') + '</table>'
       : '<span class="k">Chưa đủ lịch sử.</span>';
-    $('patBody').innerHTML = now + `<h3 style="margin-top:8px">Lịch sử mã này <span class="k">${esc(TF_LABEL[state.tf])}</span></h3>` + tab;
+    const out = { target: 'đạt mục tiêu', stop: 'chạm cắt lỗ', time: 'hết thời hạn' };
+    const pick = p ? `<div class="patpick"><button type="button" data-act="prev" aria-label="Lần trước">‹</button><span><b>${esc(PAT_NAME[p.f.id])}</b> ${pat.pick.i + 1}/${S[pat.pick.id].ev.length} · ${esc(p.lab)} · `
+      + `${p.tr.dir > 0 ? 'phá vỡ lên' : 'phá vỡ xuống'} ${fmtDate(rows[p.tr.j].t)} → ${out[p.tr.st] || ''} ${fmtDate(rows[p.tr.x].t)}, ${pc(p.tr.ret)}</span>`
+      + `<button type="button" data-act="next" aria-label="Lần sau">›</button><button type="button" data-act="close" aria-label="Bỏ chọn">×</button></div>` : '';
+    const n = rows.length, span = n ? ` · ${fmtDate(rows[0].t)}–${fmtDate(rows[n - 1].t)}, ${n} nến` : '';
+    $('patBody').innerHTML = now + `<h3 style="margin-top:8px">Lịch sử mã này <span class="k">${esc(TF_LABEL[state.tf])}${span}</span></h3>` + tab + pick
+      + (ids.length ? `<div class="pathelp k">Bấm một dòng để vẽ từng lần lên biểu đồ (‹ › để xem lần khác). Khung sóng: đỉnh, đáy cao hoặc thấp nhất trong ±3 nến (ngắn), ±7 (vừa), ±15 (dài). `
+        + `Mục tiêu = chiều cao mô hình tính từ điểm phá vỡ; cắt lỗ = cạnh đối diện hoặc đỉnh, đáy của mô hình; chưa tính phí. Đổi khung nến (D, W, M) để xem giai đoạn khác.</div>` : '');
   }
-  $('patBtn').addEventListener('click', () => { pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
-  $('patBody').addEventListener('click', e => {   // a pattern in the list: bring it into view
-    const r = e.target.closest('[data-pi]'); if (!r) return; const x = pat.live[+r.dataset.pi]; if (!x) return;
-    const i0 = x.f.swings[0].i, n = state.rows.length, pad = Math.max(10, Math.round((n - i0) * 0.15));
-    chart.timeScale().setVisibleLogicalRange({ from: i0 - pad, to: n - 1 + pad });
+  $('patBtn').addEventListener('click', () => { pat.on = !pat.on; safeSet('pt-ta-pat', pat.on ? '1' : '0'); pat.statKey = ''; pat.pick = null; patRun(); if (!pat.on) { pat.shown = []; pat.ver++; } });
+  $('patBody').addEventListener('click', e => {   // a live pattern: bring it into view; a row of the record: draw its breakouts one at a time
+    const r = e.target.closest('[data-pi]'), t = e.target.closest('[data-pid]'), b = e.target.closest('[data-act]');
+    if (r) { const x = pat.live[+r.dataset.pi]; if (x) patZoom(x); return; }
+    if (t) { const ev = pat.stats[t.dataset.pid].ev; pat.pick = { id: t.dataset.pid, i: ev.length - 1 }; }   // the latest first
+    else if (b && pat.pick) { const m = pat.stats[pat.pick.id].ev.length;
+      if (b.dataset.act === 'close') pat.pick = null; else pat.pick.i = (pat.pick.i + (b.dataset.act === 'next' ? 1 : m - 1)) % m; }
+    else return;
+    patShow(); patList(); const p = patPicked(); if (p) patZoom(p);
   });
 
   // ---------- multi-chart grid: this page as one cell ----------
